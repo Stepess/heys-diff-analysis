@@ -1,0 +1,3 @@
+rootProject.name = 'heys-diff-analisys'
+include 'heys-cipher'
+
