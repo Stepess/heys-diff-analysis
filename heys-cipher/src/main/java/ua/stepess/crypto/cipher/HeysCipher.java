@@ -1,5 +1,9 @@
 package ua.stepess.crypto.cipher;
 
+import ua.stepess.crypto.SBox;
+
+import java.util.Arrays;
+
 import static java.lang.Integer.parseInt;
 
 public class HeysCipher implements BlockCipher {
@@ -8,11 +12,12 @@ public class HeysCipher implements BlockCipher {
 
     private int n;
     private int mask;
+    private SBox sBox;
 
-    public HeysCipher(int n) {
+    public HeysCipher(int n, SBox sBox) {
         this.n = n;
-
         this.mask = parseInt(ONE.repeat(Math.max(0, n)), 2);
+        this.sBox = sBox;
     }
 
     @Override
@@ -22,6 +27,14 @@ public class HeysCipher implements BlockCipher {
 
     private int round(int x, int k) {
         int y = x ^ k;
+
+        var blocks = partitionBlock(y);
+
+        var substitutedBlocks = Arrays.stream(blocks)
+                .map(sBox::substitute)
+                .toArray();
+
+
 
         return 0;
     }
@@ -34,6 +47,10 @@ public class HeysCipher implements BlockCipher {
         }
 
         return partitioned;
+    }
+
+    int[] shuffle(int[] blocks) {
+        return null;
     }
 
     @Override
