@@ -34,9 +34,9 @@ public class HeysCipher implements BlockCipher {
                 .map(sBox::substitute)
                 .toArray();
 
+        var shuffledBlocks = shuffle(substitutedBlocks);
 
-
-        return 0;
+        return convertToInt(shuffledBlocks);
     }
 
     int[] partitionBlock(int block) {
@@ -49,8 +49,42 @@ public class HeysCipher implements BlockCipher {
         return partitioned;
     }
 
+    int convertToInt(int[] blocks) {
+        int number = 0;
+
+        for (int i = 0; i < blocks.length; i++) {
+            for (int j = 0; j < n; j++) {
+                number |= blocks[n - i - 1] << n * i;
+            }
+        }
+
+        return number;
+    }
+
     int[] shuffle(int[] blocks) {
-        return null;
+        int bit;
+
+        int[] shuffledBlocks = new int[n];
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                bit = getBitAt(blocks[j], n - i - 1);
+
+                if (bit == 1) {
+                    shuffledBlocks[i] = setBitAt(shuffledBlocks[i], n - j - 1);
+                }
+            }
+        }
+
+        return shuffledBlocks;
+    }
+
+    private int setBitAt(int number, int bitPosition) {
+        return number | 1 << bitPosition;
+    }
+
+    private int getBitAt(int number, int bitPosition) {
+        return number >> bitPosition & 1;
     }
 
     @Override

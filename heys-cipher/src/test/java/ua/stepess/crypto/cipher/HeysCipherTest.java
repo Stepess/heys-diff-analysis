@@ -39,4 +39,17 @@ class HeysCipherTest {
 
         assertArrayEquals(expectedBlocks, actualBlocks);
     }
+
+    @Test
+    void shouldConvertToInt() {
+        int[] blocks = Arrays.stream(new String[]{"1101", "0011", "0010", "1110"})
+                .mapToInt(s -> parseInt(s, 2))
+                .toArray();
+
+        int expectedNumber = parseInt("1101001100101110", 2);
+
+        int actualNumber = cipher.convertToInt(blocks);
+
+        assertEquals(expectedNumber, actualNumber);
+    }
 }
