@@ -3,6 +3,8 @@ package ua.stepess.crypto.cipher;
 import ua.stepess.crypto.SBox;
 
 import java.util.Arrays;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static java.lang.Integer.parseInt;
 
@@ -12,17 +14,28 @@ public class HeysCipher implements BlockCipher {
 
     private int n;
     private int mask;
+    private int numOfRounds;
     private SBox sBox;
 
-    public HeysCipher(int n, SBox sBox) {
+    public HeysCipher(int n, int numOfRounds, SBox sBox) {
         this.n = n;
         this.mask = parseInt(ONE.repeat(Math.max(0, n)), 2);
+        this.numOfRounds = numOfRounds;
         this.sBox = sBox;
     }
 
     @Override
-    public int encrypt(int plaintext, int key) {
+    public int encrypt(int plaintext, String key) {
+
+
         return 0;
+    }
+
+    int[] splitKey(String key) {
+        return IntStream.range(0, numOfRounds + 1)
+                .mapToObj(i -> key.substring(i * n * n, (i + 1) * n * n))
+                .mapToInt(hex -> Integer.parseInt(hex, 16))
+                .toArray();
     }
 
     private int round(int x, int k) {
@@ -88,7 +101,7 @@ public class HeysCipher implements BlockCipher {
     }
 
     @Override
-    public int decrypt(int cyphertext, int key) {
+    public int decrypt(int cyphertext, String key) {
         return 0;
     }
 }
