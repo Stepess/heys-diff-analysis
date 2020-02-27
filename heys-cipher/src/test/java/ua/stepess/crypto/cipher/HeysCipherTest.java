@@ -117,7 +117,7 @@ class HeysCipherTest {
     @Test
     void shouldDecryptEncryptedPlaintext() {
         var key = "3bd8747b5ae4d28650bed1f8e902";
-        int plaintext = 1362134;
+        int plaintext = 58196;
 
         int ciphertext = cipher.encrypt(plaintext, key);
 
@@ -156,13 +156,13 @@ class HeysCipherTest {
     }
 
     @Test
-    void name() {
-        int i = 1372942;
+    void shouldPartitionOnBlockAndViseVerse() {
+        int number = 58196;
 
-        int[] ints = cipher.partitionOnBlocks(i);
+        int[] blocks = cipher.partitionOnBlocks(number);
 
-        int i1 = cipher.convertToInt(ints);
+        int retrievedNumber = cipher.convertToInt(blocks);
 
-        assertEquals(i, i1);
+        assertEquals(number, retrievedNumber);
     }
 }

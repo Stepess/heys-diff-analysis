@@ -51,26 +51,24 @@ public class HeysCipher implements BlockCipher {
 
     int doEncryptionRound(int x, int k) {
         int y = x ^ k;
-        log.debug("y = {}", y);
 
         var blocks = partitionOnBlocks(y);
-        log.debug("Round blocks {}", Arrays.toString(blocks));
-
 
         var substitutedBlocks = Arrays.stream(blocks)
                 .map(sBox::substitute)
                 .toArray();
 
         var shuffledBlocks = shuffle(substitutedBlocks);
-        log.debug("Round blocks after transformations {}", Arrays.toString(shuffledBlocks));
+
         return convertToInt(shuffledBlocks);
     }
 
-    int[] partitionOnBlocks(int block) {
+    // TODO: what should we do if number bitlength bigger then 16
+    int[] partitionOnBlocks(int number) {
         int[] partitioned = new int[n];
 
         for (int i = 0; i < n; i++) {
-            partitioned[i] = (block >> (n * (n - i - 1))) & mask;
+            partitioned[i] = (number >> (n * (n - i - 1))) & mask;
         }
 
         return partitioned;
@@ -79,10 +77,8 @@ public class HeysCipher implements BlockCipher {
     int convertToInt(int[] blocks) {
         int number = 0;
 
-        for (int i = 0; i < blocks.length; i++) {
-            for (int j = 0; j < n; j++) {
-                number |= blocks[n - i - 1] << n * i;
-            }
+        for (int i = 0; i < n; i++) {
+            number |= blocks[n - i - 1] << n * i;
         }
 
         return number;
@@ -134,7 +130,6 @@ public class HeysCipher implements BlockCipher {
 
     int doDecryptionRound(int x, int k) {
         var shuffledBlocks = partitionOnBlocks(x);
-        log.debug("Round blocks {}", Arrays.toString(shuffledBlocks));
 
         var blocks = shuffle(shuffledBlocks);
 
@@ -142,10 +137,6 @@ public class HeysCipher implements BlockCipher {
                 .map(sBox::reverseSubstitute)
                 .toArray();
 
-        log.debug("Round blocks after transformations  {}", Arrays.toString(substitutedBlocks));
-
-        int i = convertToInt(substitutedBlocks);
-        log.debug("y = {}", i);
-        return i ^ k;
+        return convertToInt(substitutedBlocks) ^ k;
     }
 }
