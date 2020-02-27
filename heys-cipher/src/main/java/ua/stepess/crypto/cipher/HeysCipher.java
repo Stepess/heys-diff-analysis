@@ -34,7 +34,7 @@ public class HeysCipher implements BlockCipher {
         log.debug("Generated round keys [{}]", Arrays.toString(roundKeys));
 
         for (int i = 0; i < numOfRounds; i++) {
-            log.debug("Start round #{}, ciphertext [{}]", i, plaintext);
+            log.debug("Start round #{}, ciphertext [{}], round key [{}]", i, plaintext, roundKeys[i]);
             plaintext = doEncryptionRound(plaintext, roundKeys[i]);
             log.debug("Finish round #{}, ciphertext [{}]", i, plaintext);
         }
@@ -51,15 +51,18 @@ public class HeysCipher implements BlockCipher {
 
     int doEncryptionRound(int x, int k) {
         int y = x ^ k;
+        log.debug("y = {}", y);
 
         var blocks = partitionOnBlocks(y);
+        log.debug("Round blocks {}", Arrays.toString(blocks));
+
 
         var substitutedBlocks = Arrays.stream(blocks)
                 .map(sBox::substitute)
                 .toArray();
 
         var shuffledBlocks = shuffle(substitutedBlocks);
-
+        log.debug("Round blocks after transformations {}", Arrays.toString(shuffledBlocks));
         return convertToInt(shuffledBlocks);
     }
 
@@ -115,10 +118,15 @@ public class HeysCipher implements BlockCipher {
     public int decrypt(int ciphertext, String key) {
         int[] roundKeys = generateRoundKeys(key);
 
+        log.debug("Generated round keys [{}]", Arrays.toString(roundKeys));
+
         ciphertext = ciphertext ^ roundKeys[numOfRounds];
 
         for (int i = numOfRounds - 1; i > -1; i--) {
+            log.debug("Start round #{}, ciphertext [{}], round key [{}]", i, ciphertext, roundKeys[i]);
             ciphertext = doDecryptionRound(ciphertext, roundKeys[i]);
+            log.debug("Finish round #{}, ciphertext [{}]", i, ciphertext);
+
         }
 
         return ciphertext;
@@ -126,6 +134,7 @@ public class HeysCipher implements BlockCipher {
 
     int doDecryptionRound(int x, int k) {
         var shuffledBlocks = partitionOnBlocks(x);
+        log.debug("Round blocks {}", Arrays.toString(shuffledBlocks));
 
         var blocks = shuffle(shuffledBlocks);
 
@@ -133,6 +142,10 @@ public class HeysCipher implements BlockCipher {
                 .map(sBox::reverseSubstitute)
                 .toArray();
 
-        return convertToInt(substitutedBlocks) ^ k;
+        log.debug("Round blocks after transformations  {}", Arrays.toString(substitutedBlocks));
+
+        int i = convertToInt(substitutedBlocks);
+        log.debug("y = {}", i);
+        return i ^ k;
     }
 }

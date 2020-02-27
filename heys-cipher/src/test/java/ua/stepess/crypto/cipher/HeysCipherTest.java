@@ -130,8 +130,8 @@ class HeysCipherTest {
 
     @Test
     void shouldReturnPlaintextAfterOneEncryptionAndDecryptionRound() {
-        int plaintext = 123;
-        int key = 321;
+        int plaintext = 1362134;
+        int key = 15320;
 
         int ciphertext = cipher.doEncryptionRound(plaintext, key);
 
@@ -153,5 +153,16 @@ class HeysCipherTest {
         decryptedPlaintext = cipher.doDecryptionRound(decryptedPlaintext, firstRoundKey);
 
         assertEquals(plaintext, decryptedPlaintext);
+    }
+
+    @Test
+    void name() {
+        int i = 1372942;
+
+        int[] ints = cipher.partitionOnBlocks(i);
+
+        int i1 = cipher.convertToInt(ints);
+
+        assertEquals(i, i1);
     }
 }
