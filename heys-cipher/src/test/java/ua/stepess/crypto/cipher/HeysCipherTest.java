@@ -2,20 +2,35 @@ package ua.stepess.crypto.cipher;
 
 import org.junit.jupiter.api.Test;
 import ua.stepess.crypto.SBox;
+import ua.stepess.util.SBoxFactory;
 
-import java.math.BigInteger;
 import java.util.Arrays;
 
 import static java.lang.Integer.parseInt;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class HeysCipherTest {
 
-    private HeysCipher cipher = new HeysCipher(4, 6, new SBox(new int[0]));
+    private HeysCipher cipher = new HeysCipher(4, 6, SBoxFactory.getDefaultSBox());
+
+    @Test
+    void shouldEncrypt() {
+        var key = "3bd8747b5ae4d28650bed1f8e902";
+        int plaintext = 1;
+
+        int ciphertext = cipher.encrypt(plaintext, key);
+
+        System.out.println(ciphertext);
+    }
 
     @Test
     void shouldSplitKey() {
+        var key = "922da047bcb4145967f66f16a422";
 
+        int[] roundKeys = cipher.generateRoundKeys(key);
+
+        assertEquals(7, roundKeys.length);
     }
 
     @Test

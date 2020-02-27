@@ -4,7 +4,6 @@ import ua.stepess.crypto.SBox;
 
 import java.util.Arrays;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static java.lang.Integer.parseInt;
 
@@ -26,19 +25,23 @@ public class HeysCipher implements BlockCipher {
 
     @Override
     public int encrypt(int plaintext, String key) {
+        int[] roundKeys = generateRoundKeys(key);
 
+        for (int roundKey : roundKeys) {
+            plaintext = doEncryptionRound(plaintext, roundKey);
+        }
 
-        return 0;
+        return plaintext;
     }
 
-    int[] splitKey(String key) {
+    int[] generateRoundKeys(String key) {
         return IntStream.range(0, numOfRounds + 1)
-                .mapToObj(i -> key.substring(i * n * n, (i + 1) * n * n))
-                .mapToInt(hex -> Integer.parseInt(hex, 16))
+                .mapToObj(i -> key.substring(i * n, (i + 1) * n))
+                .mapToInt(hex -> parseInt(hex, 16))
                 .toArray();
     }
 
-    private int round(int x, int k) {
+    private int doEncryptionRound(int x, int k) {
         int y = x ^ k;
 
         var blocks = partitionBlock(y);
