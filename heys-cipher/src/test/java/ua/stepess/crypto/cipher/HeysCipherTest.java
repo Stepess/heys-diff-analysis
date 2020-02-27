@@ -1,14 +1,12 @@
 package ua.stepess.crypto.cipher;
 
 import org.junit.jupiter.api.Test;
-import ua.stepess.crypto.SBox;
 import ua.stepess.util.SBoxFactory;
 
 import java.util.Arrays;
 
 import static java.lang.Integer.parseInt;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 class HeysCipherTest {
 
@@ -41,7 +39,7 @@ class HeysCipherTest {
                 .mapToInt(s -> parseInt(s, 2))
                 .toArray();
 
-        int[] actualBlocks = cipher.partitionBlock(block);
+        int[] actualBlocks = cipher.partitionOnBlocks(block);
 
         assertArrayEquals(expectedBlocks, actualBlocks);
     }
@@ -100,5 +98,60 @@ class HeysCipherTest {
         int actualNumber = cipher.convertToInt(blocks);
 
         assertEquals(expectedNumber, actualNumber);
+    }
+
+    @Test
+    void shuffleBlocksShouldDeshuffle() {
+        int[] initialBlocks = Arrays.stream(new String[]{"0111", "1010", "0001", "1101"})
+                .mapToInt(s -> parseInt(s, 2))
+                .toArray();
+
+        int[] shuffledBlocks = cipher.shuffle(initialBlocks);
+
+        int[] deshuffledBlocks = cipher.shuffle(shuffledBlocks);
+
+        assertNotSame(initialBlocks, deshuffledBlocks);
+        assertArrayEquals(initialBlocks, deshuffledBlocks);
+    }
+
+    @Test
+    void shouldDecryptEncryptedPlaintext() {
+        var key = "3bd8747b5ae4d28650bed1f8e902";
+        int plaintext = 1362134;
+
+        int ciphertext = cipher.encrypt(plaintext, key);
+
+        System.out.println(key);
+
+        int decryptedPlaintext = cipher.decrypt(ciphertext, key);
+
+        assertEquals(plaintext, decryptedPlaintext);
+    }
+
+    @Test
+    void shouldReturnPlaintextAfterOneEncryptionAndDecryptionRound() {
+        int plaintext = 123;
+        int key = 321;
+
+        int ciphertext = cipher.doEncryptionRound(plaintext, key);
+
+        int decryptedPlaintext = cipher.doDecryptionRound(ciphertext, key);
+
+        assertEquals(plaintext, decryptedPlaintext);
+    }
+
+    @Test
+    void shouldReturnPlaintextAfterOneEncryptionAndDecryptionTwoRounds() {
+        int plaintext = 123;
+        int firstRoundKey = 321;
+        int secondRoundKey = 654;
+
+        int ciphertext = cipher.doEncryptionRound(plaintext, firstRoundKey);
+        ciphertext = cipher.doEncryptionRound(ciphertext, secondRoundKey);
+
+        int decryptedPlaintext = cipher.doDecryptionRound(ciphertext, secondRoundKey);
+        decryptedPlaintext = cipher.doDecryptionRound(decryptedPlaintext, firstRoundKey);
+
+        assertEquals(plaintext, decryptedPlaintext);
     }
 }

@@ -4,6 +4,6 @@ public interface BlockCipher {
 
     int encrypt(int plaintext, String key);
 
-    int decrypt(int cyphertext, String key);
+    int decrypt(int ciphertext, String key);
 
 }

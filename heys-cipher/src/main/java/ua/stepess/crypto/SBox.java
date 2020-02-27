@@ -14,4 +14,13 @@ public class SBox {
         return substitution[input];
     }
 
+    public int reverseSubstitute(int input) {
+        for (int i = 0; i < substitution.length; i++) {
+            if (substitution[i] == input) {
+                return i;
+            }
+        }
+        throw new ArithmeticException("Element not found");
+    }
+
 }
