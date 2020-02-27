@@ -27,11 +27,11 @@ public class HeysCipher implements BlockCipher {
     public int encrypt(int plaintext, String key) {
         int[] roundKeys = generateRoundKeys(key);
 
-        for (int roundKey : roundKeys) {
-            plaintext = doEncryptionRound(plaintext, roundKey);
+        for (int i = 0; i < numOfRounds; i++) {
+            plaintext = doEncryptionRound(plaintext, roundKeys[i]);
         }
 
-        return plaintext;
+        return plaintext ^ roundKeys[numOfRounds];
     }
 
     int[] generateRoundKeys(String key) {
