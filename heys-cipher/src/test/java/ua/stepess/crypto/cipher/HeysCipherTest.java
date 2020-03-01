@@ -165,4 +165,15 @@ class HeysCipherTest {
 
         assertEquals(number, retrievedNumber);
     }
+
+    @Test
+    void shouldEncryptAsTextProgram() {
+        int plaintext = Integer.parseInt("ff", 16);
+
+        var key = "3bd8747b5ae4d";
+
+        int ciphertext = cipher.encrypt(plaintext, key);
+
+        assertEquals("5D3C", Integer.toHexString(ciphertext));
+    }
 }
