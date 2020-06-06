@@ -19,8 +19,20 @@ public class DifferentialSearch {
     public static final String DEFAULT_KEY = "a1722101d9e038caa7b4d120c18b";
 
     public static void main(String[] args) throws IOException {
-        int[] alphas = {0x0f00, 0x00f0, 0x000f, 0x1000, 0x0100, 0x0010};
-        for (int alpha: alphas) {
+        /*int[] alphas = {0xf000, 0x0f00, 0x00f0, 0x000f,
+                0x1000, 0x0100, 0x0010, 0x0001,
+                0x2000, 0x0200, 0x0020, 0x0002,
+                0x3000, 0x0300, 0x0030, 0x0003,
+        };*/
+
+        int[] alphas = {0xe000, 0x0e00, 0x00e0, 0x000e,
+                0xa000, 0x0a00, 0x00a0, 0x000a,
+                0xb000, 0x0b00, 0x00b0, 0x000b,
+                0x7000, 0x0700, 0x0070, 0x0007,
+                0xd000, 0x0d00, 0x00d0, 0x000d,
+                0xc000, 0x0c00, 0x00c0, 0x000c,
+        };
+        for (int alpha : alphas) {
             var searchResult = search(alpha, 6);
 
             writeToDisk(alpha, searchResult);
@@ -40,12 +52,12 @@ public class DifferentialSearch {
 
         var enc = encryptThemAll();
 
-        double[] bounds = {0.1, 0.01, 0.0003, 0.00003, 0.000005, 0.0005};
+        double[] bounds = {0.1, 0.01, 0.003, 0.0003, 0.00005, 0.0005};
 
         Map<Integer, Double> current = new HashMap<>();
 
         for (int i = 0; i < r; i++) {
-            for (Map.Entry<Integer,Double> pair : previous.entrySet()) {
+            for (Map.Entry<Integer, Double> pair : previous.entrySet()) {
                 var probabilities = calculateProbabilities(pair.getKey(), enc);
 
                 for (int x = 0; x < VECTORS_NUM; x++) {
@@ -60,7 +72,7 @@ public class DifferentialSearch {
 
             previous.clear();
 
-            for (Map.Entry<Integer,Double> pair : current.entrySet()) {
+            for (Map.Entry<Integer, Double> pair : current.entrySet()) {
                 if (pair.getValue() > bounds[i]) {
                     previous.put(pair.getKey(), pair.getValue());
                 }
