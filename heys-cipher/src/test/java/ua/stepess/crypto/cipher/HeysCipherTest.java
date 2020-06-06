@@ -214,4 +214,19 @@ class HeysCipherTest {
         assertArrayEquals(decrypt, text.getBytes());
     }
 
+    @Test
+    void shouldEncryptAndDecryptAsTextProgram2() {
+        var text = "f";
+
+        var key = "a1722101d9e038caa7b4d120c18b";
+
+        byte[] ciphertext = cipher.encrypt(text.getBytes(), key);
+
+        var decrypt = cipher.decrypt(ciphertext, key);
+
+        System.out.println(new String(decrypt));
+
+        assertArrayEquals(decrypt, text.getBytes());
+    }
+
 }

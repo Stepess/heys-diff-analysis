@@ -47,6 +47,8 @@ public class HeysCipher implements BlockCipher {
     }
 
     int[] splitInputToBlocks(byte[] in) {
+        in = addPadding(in);
+
         int[] blocks = new int[in.length / 2];
 
         for (int i = 0; i < blocks.length; i++) {
@@ -54,6 +56,16 @@ public class HeysCipher implements BlockCipher {
         }
 
         return blocks;
+    }
+
+    private byte[] addPadding(byte[] in) {
+        if (in.length % 2 != 0) {
+            byte[] padded = new byte[in.length + 1];
+            System.arraycopy(in, 0, padded, 1, in.length);
+            padded[0] = '\n';
+            in = padded;
+        }
+        return in;
     }
 
     byte[] convertBlocksToBytes(int[] blocks) {
