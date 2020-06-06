@@ -29,25 +29,25 @@ public class HeysCipher implements BlockCipher {
     }
 
     @Override
-    public int encrypt(int plaintext, String key) {
+    public int encryptBlock(int block, String key) {
         int[] roundKeys = generateRoundKeys(key);
 
         log.debug("Generated round keys [{}]", toHexString(roundKeys));
 
-        plaintext = toLittleEndian(plaintext);
+        block = toLittleEndian(block);
 
         for (int i = 0; i < numOfRounds; i++) {
             log.debug("========= Start Round #{} =========", i);
-            log.debug("plaintext:  {} : {}", Integer.toHexString(plaintext), Integer.toBinaryString(plaintext));
+            log.debug("plaintext:  {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
             log.debug("key:        {} : {}", Integer.toHexString(roundKeys[i]), Integer.toBinaryString(roundKeys[i]));
-            plaintext = doEncryptionRound(plaintext, roundKeys[i]);
-            log.debug("ciphertext: {} : {}", Integer.toHexString(plaintext), Integer.toBinaryString(plaintext));
+            block = doEncryptionRound(block, roundKeys[i]);
+            log.debug("ciphertext: {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
         }
 
         log.debug("========= Start Round #{} =========", numOfRounds);
-        log.debug("plaintext:  {} : {}", Integer.toHexString(plaintext), Integer.toBinaryString(plaintext));
+        log.debug("plaintext:  {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
         log.debug("key:        {} : {}", Integer.toHexString(roundKeys[numOfRounds]), Integer.toBinaryString(roundKeys[numOfRounds]));
-        var ciphertext = plaintext ^ roundKeys[numOfRounds];
+        var ciphertext = block ^ roundKeys[numOfRounds];
         log.debug("ciphertext: {} : {}", Integer.toHexString(ciphertext), Integer.toBinaryString(ciphertext));
 
         return ciphertext;
@@ -136,21 +136,28 @@ public class HeysCipher implements BlockCipher {
     }
 
     @Override
-    public int decrypt(int ciphertext, String key) {
+    public int decryptBlock(int block, String key) {
         int[] roundKeys = generateRoundKeys(key);
 
-        log.debug("Generated round keys [{}]", Arrays.toString(roundKeys));
+        log.debug("Generated round keys [{}]", toHexString(roundKeys));
 
-        ciphertext = ciphertext ^ roundKeys[numOfRounds];
+        log.debug("========= Start Round #{} =========", numOfRounds);
+        log.debug("ciphertext:  {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
+        log.debug("key:         {} : {}", Integer.toHexString(roundKeys[numOfRounds]), Integer.toBinaryString(roundKeys[numOfRounds]));
+        block = block ^ roundKeys[numOfRounds];
+        log.debug("plaintext:   {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
 
         for (int i = numOfRounds - 1; i > -1; i--) {
-            log.debug("Start round #{}, ciphertext [{}], round key [{}]", i, ciphertext, roundKeys[i]);
-            ciphertext = doDecryptionRound(ciphertext, roundKeys[i]);
-            log.debug("Finish round #{}, ciphertext [{}]", i, ciphertext);
-
+            log.debug("========= Start Round #{} =========", i);
+            log.debug("ciphertext:  {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
+            log.debug("key:         {} : {}", Integer.toHexString(roundKeys[i]), Integer.toBinaryString(roundKeys[i]));
+            block = doDecryptionRound(block, roundKeys[i]);
+            log.debug("plaintext:   {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
         }
 
-        return ciphertext;
+        block = toLittleEndian(block);
+
+        return block;
     }
 
     int doDecryptionRound(int x, int k) {

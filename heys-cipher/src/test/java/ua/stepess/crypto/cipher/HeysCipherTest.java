@@ -17,7 +17,7 @@ class HeysCipherTest {
         var key = "3bd8747b5ae4d28650bed1f8e902";
         int plaintext = 1;
 
-        int ciphertext = cipher.encrypt(plaintext, key);
+        int ciphertext = cipher.encryptBlock(plaintext, key);
 
         System.out.println(ciphertext);
     }
@@ -119,11 +119,11 @@ class HeysCipherTest {
         var key = "3bd8747b5ae4d28650bed1f8e902";
         int plaintext = 58196;
 
-        int ciphertext = cipher.encrypt(plaintext, key);
+        int ciphertext = cipher.encryptBlock(plaintext, key);
 
         System.out.println(key);
 
-        int decryptedPlaintext = cipher.decrypt(ciphertext, key);
+        int decryptedPlaintext = cipher.decryptBlock(ciphertext, key);
 
         assertEquals(plaintext, decryptedPlaintext);
     }
@@ -172,8 +172,19 @@ class HeysCipherTest {
 
         var key = "a1722101d9e038caa7b4d120c18b";
 
-        int ciphertext = cipher.encrypt(plaintext, key);
+        int ciphertext = cipher.encryptBlock(plaintext, key);
 
         assertEquals("3ACC", Integer.toHexString(ciphertext).toUpperCase());
+    }
+
+    @Test
+    void shouldDecryptAsTextProgram() {
+        int ciphertext = Integer.parseInt("3ACC", 16);
+
+        var key = "a1722101d9e038caa7b4d120c18b";
+
+        int plaintext = cipher.decryptBlock(ciphertext, key);
+
+        assertEquals("1234", Integer.toHexString(plaintext).toUpperCase());
     }
 }
