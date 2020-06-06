@@ -187,4 +187,31 @@ class HeysCipherTest {
 
         assertEquals("1234", Integer.toHexString(plaintext).toUpperCase());
     }
+
+    @Test
+    void shouldEncryptAndDecryptAsTextProgram() {
+        var text = "a1722101d9e038caa7b4d120c18b";
+
+        var key = "a1722101d9e038caa7b4d120c18b";
+
+        byte[] ciphertext = cipher.encrypt(text.getBytes(), key);
+
+        var decrypt = cipher.decrypt(ciphertext, key);
+
+        assertArrayEquals(decrypt, text.getBytes());
+    }
+
+    @Test
+    void shouldEncryptAndDecryptAsTextProgram1() {
+        var text = "ff";
+
+        var key = "a1722101d9e038caa7b4d120c18b";
+
+        byte[] ciphertext = cipher.encrypt(text.getBytes(), key);
+
+        var decrypt = cipher.decrypt(ciphertext, key);
+
+        assertArrayEquals(decrypt, text.getBytes());
+    }
+
 }

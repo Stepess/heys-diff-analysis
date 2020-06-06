@@ -29,6 +29,45 @@ public class HeysCipher implements BlockCipher {
     }
 
     @Override
+    public byte[] encrypt(byte[] plaintext, String key) {
+        var blocks = splitInputToBlocks(plaintext);
+        var encryptedBlocks = Arrays.stream(blocks)
+                .map(b -> encryptBlock(b, key))
+                .toArray();
+        return convertBlocksToBytes(encryptedBlocks);
+    }
+
+    @Override
+    public byte[] decrypt(byte[] ciphertext, String key) {
+        var blocks = splitInputToBlocks(ciphertext);
+        var decryptedBlocks = Arrays.stream(blocks)
+                .map(b -> decryptBlock(b, key))
+                .toArray();
+        return convertBlocksToBytes(decryptedBlocks);
+    }
+
+    int[] splitInputToBlocks(byte[] in) {
+        int[] blocks = new int[in.length / 2];
+
+        for (int i = 0; i < blocks.length; i++) {
+            blocks[i] = ((in[2 * i + 1] & 0xff) << 8) ^ in[2 * i] & 0xff;
+        }
+
+        return blocks;
+    }
+
+    byte[] convertBlocksToBytes(int[] blocks) {
+        byte[] out = new byte[blocks.length * 2];
+
+        for (int i = 0; i < blocks.length; i++) {
+            out[2 * i] = (byte) (blocks[i] & 0xff);
+            out[2 * i + 1] = (byte) ((blocks[i] >>> 8) & 0xff);
+        }
+
+        return out;
+    }
+
+    @Override
     public int encryptBlock(int block, String key) {
         int[] roundKeys = generateRoundKeys(key);
 
@@ -94,7 +133,8 @@ public class HeysCipher implements BlockCipher {
 
         for (int i = 0; i < n; i++) {
             partitioned[i] = number >> (12 - n * i) & mask;
-        };
+        }
+        ;
 
         return partitioned;
     }

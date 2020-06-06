@@ -2,8 +2,12 @@ package ua.stepess.crypto.cipher;
 
 public interface BlockCipher {
 
-    int encryptBlock(int plaintext, String key);
+    byte[] encrypt(byte[] plaintext, String key);
 
-    int decryptBlock(int ciphertext, String key);
+    byte[] decrypt(byte[] ciphertext, String key);
+
+    int encryptBlock(int block, String key);
+
+    int decryptBlock(int block, String key);
 
 }
