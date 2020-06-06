@@ -34,21 +34,23 @@ public class HeysCipher implements BlockCipher {
 
         log.debug("Generated round keys [{}]", toHexString(roundKeys));
 
-        plaintext = Integer.reverseBytes(plaintext);
+        plaintext = toLittleEndian(plaintext);
 
         for (int i = 0; i < numOfRounds; i++) {
-            log.debug("Round #{}", i);
-            log.debug("plaintext: {} : {}", Integer.toHexString(plaintext), Integer.toBinaryString(plaintext));
-            log.debug("key: {} : {}", Integer.toHexString(roundKeys[i]), Integer.toBinaryString(roundKeys[i]));
+            log.debug("========= Start Round #{} =========", i);
+            log.debug("plaintext:  {} : {}", Integer.toHexString(plaintext), Integer.toBinaryString(plaintext));
+            log.debug("key:        {} : {}", Integer.toHexString(roundKeys[i]), Integer.toBinaryString(roundKeys[i]));
             plaintext = doEncryptionRound(plaintext, roundKeys[i]);
-            log.debug("Finish round #{}, ciphertext: {} : {}", i,
-                    Integer.toHexString(plaintext), Integer.toBinaryString(plaintext));
+            log.debug("ciphertext: {} : {}", Integer.toHexString(plaintext), Integer.toBinaryString(plaintext));
         }
 
-        var res = plaintext ^ roundKeys[numOfRounds];
+        log.debug("========= Start Round #{} =========", numOfRounds);
+        log.debug("plaintext:  {} : {}", Integer.toHexString(plaintext), Integer.toBinaryString(plaintext));
+        log.debug("key:        {} : {}", Integer.toHexString(roundKeys[numOfRounds]), Integer.toBinaryString(roundKeys[numOfRounds]));
+        var ciphertext = plaintext ^ roundKeys[numOfRounds];
+        log.debug("ciphertext: {} : {}", Integer.toHexString(ciphertext), Integer.toBinaryString(ciphertext));
 
-        res = res >> 16;
-        return res;
+        return ciphertext;
     }
 
     private String toHexString(int[] roundKeys) {
@@ -56,17 +58,21 @@ public class HeysCipher implements BlockCipher {
                 .collect(Collectors.joining(" "));
     }
 
+    private int toLittleEndian(int num) {
+        return Integer.reverseBytes(num) >>> 16;
+    }
+
     int[] generateRoundKeys(String key) {
         return IntStream.range(0, numOfRounds + 1)
                 .mapToObj(i -> key.substring(i * n, (i + 1) * n))
                 .mapToInt(hex -> parseInt(hex, 16))
-                .map(Integer::reverseBytes)
+                .map(this::toLittleEndian)
                 .toArray();
     }
 
     int doEncryptionRound(int x, int k) {
         int y = x ^ k;
-        log.debug("x ^ k: {} : {}", Integer.toHexString(y), Integer.toBinaryString(y));
+        log.debug("x ^ k:      {} : {}", Integer.toHexString(y), Integer.toBinaryString(y));
 
         var blocks = partitionOnBlocks(y);
 
@@ -74,8 +80,8 @@ public class HeysCipher implements BlockCipher {
                 .map(sBox::substitute)
                 .toArray();
 
-        var num = convertToInt(substitutedBlocks);
-        log.debug("S(x): {} : {}", Integer.toHexString(num), Integer.toBinaryString(num));
+        var substituted = convertToInt(substitutedBlocks);
+        log.debug("S(x):       {} : {}", Integer.toHexString(substituted), Integer.toBinaryString(substituted));
 
         var shuffledBlocks = shuffle(substitutedBlocks);
 
@@ -86,13 +92,9 @@ public class HeysCipher implements BlockCipher {
     int[] partitionOnBlocks(int number) {
         int[] partitioned = new int[n];
 
-        for (int i = 1; i <= n; i++) {
-            partitioned[i-1] = (number >> (32 - n * i)) & mask;
+        for (int i = 0; i < n; i++) {
+            partitioned[i] = number >> (12 - n * i) & mask;
         };
-
-        /*for (int i = 0; i < n; i++) {
-            partitioned[i] = (number >> (n * (n - i - 1))) & mask;
-        }*/
 
         return partitioned;
     }
@@ -103,8 +105,6 @@ public class HeysCipher implements BlockCipher {
         for (int i = 0; i < n; i++) {
             number |= blocks[n - i - 1] << n * i;
         }
-
-        number = number << 16;
 
         return number;
     }
