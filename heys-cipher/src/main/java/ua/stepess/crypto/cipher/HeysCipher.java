@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import ua.stepess.crypto.SBox;
 
 import java.util.Arrays;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.lang.Integer.parseInt;
@@ -31,32 +32,50 @@ public class HeysCipher implements BlockCipher {
     public int encrypt(int plaintext, String key) {
         int[] roundKeys = generateRoundKeys(key);
 
-        log.debug("Generated round keys [{}]", Arrays.toString(roundKeys));
+        log.debug("Generated round keys [{}]", toHexString(roundKeys));
+
+        plaintext = Integer.reverseBytes(plaintext);
 
         for (int i = 0; i < numOfRounds; i++) {
-            log.debug("Start round #{}, ciphertext [{}], round key [{}]", i, plaintext, roundKeys[i]);
+            log.debug("Round #{}", i);
+            log.debug("plaintext: {} : {}", Integer.toHexString(plaintext), Integer.toBinaryString(plaintext));
+            log.debug("key: {} : {}", Integer.toHexString(roundKeys[i]), Integer.toBinaryString(roundKeys[i]));
             plaintext = doEncryptionRound(plaintext, roundKeys[i]);
-            log.debug("Finish round #{}, ciphertext [{}]", i, plaintext);
+            log.debug("Finish round #{}, ciphertext: {} : {}", i,
+                    Integer.toHexString(plaintext), Integer.toBinaryString(plaintext));
         }
 
-        return plaintext ^ roundKeys[numOfRounds];
+        var res = plaintext ^ roundKeys[numOfRounds];
+
+        res = res >> 16;
+        return res;
+    }
+
+    private String toHexString(int[] roundKeys) {
+        return Arrays.stream(roundKeys).mapToObj(Integer::toHexString)
+                .collect(Collectors.joining(" "));
     }
 
     int[] generateRoundKeys(String key) {
         return IntStream.range(0, numOfRounds + 1)
                 .mapToObj(i -> key.substring(i * n, (i + 1) * n))
                 .mapToInt(hex -> parseInt(hex, 16))
+                .map(Integer::reverseBytes)
                 .toArray();
     }
 
     int doEncryptionRound(int x, int k) {
         int y = x ^ k;
+        log.debug("x ^ k: {} : {}", Integer.toHexString(y), Integer.toBinaryString(y));
 
         var blocks = partitionOnBlocks(y);
 
         var substitutedBlocks = Arrays.stream(blocks)
                 .map(sBox::substitute)
                 .toArray();
+
+        var num = convertToInt(substitutedBlocks);
+        log.debug("S(x): {} : {}", Integer.toHexString(num), Integer.toBinaryString(num));
 
         var shuffledBlocks = shuffle(substitutedBlocks);
 
@@ -67,9 +86,13 @@ public class HeysCipher implements BlockCipher {
     int[] partitionOnBlocks(int number) {
         int[] partitioned = new int[n];
 
-        for (int i = 0; i < n; i++) {
+        for (int i = 1; i <= n; i++) {
+            partitioned[i-1] = (number >> (32 - n * i)) & mask;
+        };
+
+        /*for (int i = 0; i < n; i++) {
             partitioned[i] = (number >> (n * (n - i - 1))) & mask;
-        }
+        }*/
 
         return partitioned;
     }
@@ -80,6 +103,8 @@ public class HeysCipher implements BlockCipher {
         for (int i = 0; i < n; i++) {
             number |= blocks[n - i - 1] << n * i;
         }
+
+        number = number << 16;
 
         return number;
     }

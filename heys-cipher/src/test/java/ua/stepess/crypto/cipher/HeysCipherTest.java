@@ -168,12 +168,12 @@ class HeysCipherTest {
 
     @Test
     void shouldEncryptAsTextProgram() {
-        int plaintext = Integer.parseInt("ff", 16);
+        int plaintext = Integer.parseInt("1234", 16);
 
-        var key = "3bd8747b5ae4d";
+        var key = "a1722101d9e038caa7b4d120c18b";
 
         int ciphertext = cipher.encrypt(plaintext, key);
 
-        assertEquals("5D3C", Integer.toHexString(ciphertext));
+        assertEquals("3ACC", Integer.toHexString(ciphertext).toUpperCase());
     }
 }
