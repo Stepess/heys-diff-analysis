@@ -6,7 +6,9 @@ import ua.stepess.util.HeysCipherFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DifferentialSearch {
@@ -25,18 +27,36 @@ public class DifferentialSearch {
                 0x3000, 0x0300, 0x0030, 0x0003,
         };*/
 
-        int[] alphas = {0xe000, 0x0e00, 0x00e0, 0x000e,
+        /*int[] alphas = {0xe000, 0x0e00, 0x00e0, 0x000e,
                 0xa000, 0x0a00, 0x00a0, 0x000a,
                 0xb000, 0x0b00, 0x00b0, 0x000b,
                 0x7000, 0x0700, 0x0070, 0x0007,
                 0xd000, 0x0d00, 0x00d0, 0x000d,
                 0xc000, 0x0c00, 0x00c0, 0x000c,
-        };
+        };*/
+
+        var differentials = new HashMap<Integer, List<Integer>>();
+
+        int[] alphas = {0xF000};
         for (int alpha : alphas) {
             var searchResult = search(alpha, 6);
 
+            var diffs = new ArrayList<>(searchResult.keySet());
+            differentials.put(alpha, diffs);
+
             writeToDisk(alpha, searchResult);
         }
+
+        var ciphertext = new HashMap<Integer, Integer>();
+
+        for (int x = 0; x < VECTORS_NUM; x++) {
+            ciphertext.put(x, HEYS.encryptBlock(x, DEFAULT_KEY));
+        }
+
+        for (Map.Entry<Integer, List<Integer>> diff : differentials.entrySet()) {
+            attack(diff.getKey(), diff.getValue(), ciphertext, DEFAULT_KEY);
+        }
+
     }
 
     private static void writeToDisk(int alpha, Map<Integer, Double> searchResult) throws IOException {
@@ -50,15 +70,15 @@ public class DifferentialSearch {
         Map<Integer, Double> previous = new HashMap<>();
         previous.put(alpha, 1.0);
 
-        var enc = encryptThemAll();
+        //var enc = encryptThemAll();
 
-        double[] bounds = {0.1, 0.01, 0.003, 0.0003, 0.00005, 0.0005};
+        double[] bounds = {0.0001, 0.00001, 0.003, 0.0003, 0.00005, 0.0005};
 
         Map<Integer, Double> current = new HashMap<>();
 
         for (int i = 0; i < r; i++) {
             for (Map.Entry<Integer, Double> pair : previous.entrySet()) {
-                var probabilities = calculateProbabilities(pair.getKey(), enc);
+                var probabilities = calculateProbabilities(pair.getKey());
 
                 for (int x = 0; x < VECTORS_NUM; x++) {
                     var p = current.get(x);
@@ -77,22 +97,61 @@ public class DifferentialSearch {
                     previous.put(pair.getKey(), pair.getValue());
                 }
             }
+
+            System.out.println("Round #" + i);
+            System.out.println();
+            System.out.println("Survived : " + previous);
         }
 
         return previous;
     }
 
-    private static double[] calculateProbabilities(int alpha, int[] enc) {
+    public static void attack(int alpha, List<Integer> differentials, Map<Integer, Integer> ciphertexts, String key) {
+        int lastKey = Integer.valueOf(key.substring(24), 16);
+
+        for (int beta : differentials) {
+            int count = 0;
+            int mostProbableKey = 0;
+
+            Map<Integer, Integer> pairs = new HashMap<>();
+            for (Map.Entry<Integer, Integer> c : ciphertexts.entrySet()) {
+                if (ciphertexts.containsKey(c.getKey() ^ alpha)) {
+                    pairs.put(c.getKey(), c.getValue());
+                }
+            }
+
+            for (int k = 0; k < VECTORS_NUM; k++) {
+                int currCount = 0;
+                for (Map.Entry<Integer, Integer> entry : pairs.entrySet()) {
+                    if ((HEYS.doDecryptionRound(entry.getValue(), k) ^
+                            HEYS.doDecryptionRound(entry.getKey() ^ alpha, k)) == beta)
+                        currCount++;
+                }
+                if (currCount > count) {
+                    count = currCount;
+                    mostProbableKey = k;
+                }
+            }
+            System.out.println(count);
+            System.out.println(mostProbableKey == lastKey);
+        }
+    }
+
+    private static double[] calculateProbabilities(int alpha) {
         double[] frequencies = new double[VECTORS_NUM];
 
-        for (int x = 0; x < VECTORS_NUM; x++) {
-            frequencies[enc[x] ^ enc[x ^ alpha]]++;
+        for (int k = 0; k < VECTORS_NUM; k++) {
+            for (int x = 0; x < VECTORS_NUM; x++) {
+                frequencies[HEYS.doEncryptionRound(x, k) ^
+                        HEYS.doDecryptionRound(x ^ alpha, k)]++;
+            }
         }
+
 
         double[] probabilities = new double[VECTORS_NUM];
 
         for (int x = 0; x < VECTORS_NUM; x++) {
-            probabilities[x] = frequencies[x] / VECTORS_NUM;
+            probabilities[x] = frequencies[x] / (1.0 * VECTORS_NUM * VECTORS_NUM);
         }
 
         return probabilities;

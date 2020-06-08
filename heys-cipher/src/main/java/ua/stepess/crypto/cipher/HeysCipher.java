@@ -121,7 +121,8 @@ public class HeysCipher implements BlockCipher {
                 .toArray();
     }
 
-    int doEncryptionRound(int x, int k) {
+    @Override
+    public int doEncryptionRound(int x, int k) {
         int y = x ^ k;
         log.debug("x ^ k:      {} : {}", Integer.toHexString(y), Integer.toBinaryString(y));
 
@@ -212,7 +213,8 @@ public class HeysCipher implements BlockCipher {
         return block;
     }
 
-    int doDecryptionRound(int x, int k) {
+    @Override
+    public int doDecryptionRound(int x, int k) {
         var shuffledBlocks = partitionOnBlocks(x);
 
         var blocks = shuffle(shuffledBlocks);

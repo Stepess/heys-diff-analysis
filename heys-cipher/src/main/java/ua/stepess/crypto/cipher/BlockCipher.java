@@ -10,4 +10,7 @@ public interface BlockCipher {
 
     int decryptBlock(int block, String key);
 
+    int doEncryptionRound(int block, int key);
+
+    int doDecryptionRound(int block, int key);
 }
