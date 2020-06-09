@@ -108,32 +108,29 @@ public class DifferentialSearch {
         return previous;
     }
 
-    public static void attack(int alpha, List<Integer> differentials, Map<Integer, Integer> ciphertexts, String key) {
+    public static void attack(int alpha, List<Integer> betas, Map<Integer, Integer> ciphertexts, String key) {
         int lastKey = Integer.valueOf(key.substring(24), 16);
 
-        for (int beta : differentials) {
+        for (int beta : betas) {
             int count = 0;
             int mostProbableKey = 0;
 
-            Map<Integer, Integer> pairs = new HashMap<>();
-            for (Map.Entry<Integer, Integer> c : ciphertexts.entrySet()) {
-                if (ciphertexts.containsKey(c.getKey() ^ alpha)) {
-                    pairs.put(c.getKey(), c.getValue());
-                }
-            }
-
             for (int k = 0; k < VECTORS_NUM; k++) {
-                int currCount = 0;
-                for (Map.Entry<Integer, Integer> entry : pairs.entrySet()) {
-                    if ((HEYS.doDecryptionRound(entry.getValue(), k) ^
-                            HEYS.doDecryptionRound(entry.getKey() ^ alpha, k)) == beta)
-                        currCount++;
+                int currentKeyScore = 0;
+
+                for (int x = 0; x < VECTORS_NUM; x++) {
+                    if ((HEYS.doDecryptionRound(ciphertexts.get(x), k) ^
+                            HEYS.doDecryptionRound(ciphertexts.get(x ^ alpha), k)) == beta)
+                        currentKeyScore++;
                 }
-                if (currCount > count) {
-                    count = currCount;
+
+                if (currentKeyScore > count) {
+                    count = currentKeyScore;
                     mostProbableKey = k;
                 }
+
             }
+
             System.out.println(count);
             System.out.println(mostProbableKey == lastKey);
         }
@@ -156,16 +153,6 @@ public class DifferentialSearch {
         }
 
         return probabilities;
-    }
-
-    private static int[] encryptThemAll() {
-        int[] encrypted = new int[VECTORS_NUM];
-
-        for (int x = 0; x < VECTORS_NUM; x++) {
-            encrypted[x] = HEYS.encryptBlock(x, DEFAULT_KEY);
-        }
-
-        return encrypted;
     }
 
 }
