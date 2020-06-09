@@ -37,7 +37,7 @@ public class DifferentialSearch {
 
         var differentials = new HashMap<Integer, List<Integer>>();
 
-        int[] alphas = {0xF000};
+        int[] alphas = {0x0100};
         for (int alpha : alphas) {
             var searchResult = search(alpha, 6);
 
@@ -47,7 +47,7 @@ public class DifferentialSearch {
             writeToDisk(alpha, searchResult);
         }
 
-        var ciphertext = new HashMap<Integer, Integer>();
+        /*var ciphertext = new HashMap<Integer, Integer>();
 
         for (int x = 0; x < VECTORS_NUM; x++) {
             ciphertext.put(x, HEYS.encryptBlock(x, DEFAULT_KEY));
@@ -55,7 +55,7 @@ public class DifferentialSearch {
 
         for (Map.Entry<Integer, List<Integer>> diff : differentials.entrySet()) {
             attack(diff.getKey(), diff.getValue(), ciphertext, DEFAULT_KEY);
-        }
+        }*/
 
     }
 
@@ -70,22 +70,24 @@ public class DifferentialSearch {
         Map<Integer, Double> previous = new HashMap<>();
         previous.put(alpha, 1.0);
 
-        //var enc = encryptThemAll();
-
-        double[] bounds = {0.0001, 0.00001, 0.003, 0.0003, 0.00005, 0.0005};
+        // the last one should be >> 0.00003051757
+        double[] bounds = {0.0001, 0.00000013, 0.00000000006, 0.00000000000007, 0.00000000000000002, 0.0005};
 
         Map<Integer, Double> current = new HashMap<>();
 
         for (int i = 0; i < r; i++) {
-            for (Map.Entry<Integer, Double> pair : previous.entrySet()) {
-                var probabilities = calculateProbabilities(pair.getKey());
+
+            current.clear();
+
+            for (Map.Entry<Integer, Double> g : previous.entrySet()) {
+                var probabilities = calculateProbabilities(g.getKey());
 
                 for (int x = 0; x < VECTORS_NUM; x++) {
                     var p = current.get(x);
                     if (p != null) {
-                        current.put(x, current.get(x) + probabilities[x] * pair.getValue());
+                        current.put(x, p + probabilities[x] * g.getValue());
                     } else {
-                        current.put(x, probabilities[x] * pair.getValue());
+                        current.put(x, probabilities[x] * g.getValue());
                     }
                 }
             }
@@ -140,18 +142,17 @@ public class DifferentialSearch {
     private static double[] calculateProbabilities(int alpha) {
         double[] frequencies = new double[VECTORS_NUM];
 
+        // this cipher is Markov's, so differential probabilities doesn't depends on input
         for (int k = 0; k < VECTORS_NUM; k++) {
-            for (int x = 0; x < VECTORS_NUM; x++) {
-                frequencies[HEYS.doEncryptionRound(x, k) ^
-                        HEYS.doDecryptionRound(x ^ alpha, k)]++;
-            }
+            frequencies[HEYS.doEncryptionRound(0, k) ^
+                    HEYS.doDecryptionRound(alpha, k)]++;
         }
 
 
         double[] probabilities = new double[VECTORS_NUM];
 
         for (int x = 0; x < VECTORS_NUM; x++) {
-            probabilities[x] = frequencies[x] / (1.0 * VECTORS_NUM * VECTORS_NUM);
+            probabilities[x] = frequencies[x] / VECTORS_NUM;
         }
 
         return probabilities;
