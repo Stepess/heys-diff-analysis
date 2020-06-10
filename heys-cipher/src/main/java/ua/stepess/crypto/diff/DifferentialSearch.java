@@ -1,11 +1,14 @@
 package ua.stepess.crypto.diff;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ua.stepess.crypto.cipher.BlockCipher;
 import ua.stepess.util.HeysCipherFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,16 +35,19 @@ public class DifferentialSearch {
                 0xc000, 0x0c00, 0x00c0, 0x000c,
         };
 
-        //var differentials = new HashMap<Integer, List<Integer>>();
-        var differentials = new HashMap<Integer, Map<Integer, Double>>();
+        var fileName = "differentials.json";
+        Map<Integer, Map<Integer, Double>> differentials;
 
-        for (int alpha : alphas) {
-            var searchResult = search(alpha, 5);
+        if (isDifferentialsCalculated(fileName)) {
+            differentials = readDifferentialsFromFile(fileName);
+        } else {
+            differentials = calculateDifferentials(alphas);
 
-            differentials.put(alpha, searchResult);
+            writeToDisk(differentials);
         }
 
-        writeToDisk(differentials);
+        // cleanup
+        differentials.entrySet().removeIf(e -> e.getValue() == null || e.getValue().isEmpty());
 
         /*var ciphertext = new HashMap<Integer, Integer>();
 
@@ -53,6 +59,27 @@ public class DifferentialSearch {
             attack(diff.getKey(), diff.getValue(), ciphertext, DEFAULT_KEY);
         }*/
 
+    }
+
+    private static boolean isDifferentialsCalculated(String fileName) {
+        return Files.exists(Path.of(fileName));
+    }
+
+    private static Map<Integer, Map<Integer, Double>> calculateDifferentials(int[] alphas) {
+        Map<Integer, Map<Integer, Double>> differentials;
+        differentials = new HashMap<>();
+
+        for (int alpha : alphas) {
+            var searchResult = search(alpha, 5);
+
+            differentials.put(alpha, searchResult);
+        }
+        return differentials;
+    }
+
+    private static Map<Integer, Map<Integer, Double>> readDifferentialsFromFile(String fileName) throws IOException {
+        var srcFile = new File(fileName);
+        return OBJECT_MAPPER.readValue(srcFile, new TypeReference<>() {});
     }
 
     private static void writeToDisk(Map<Integer, Map<Integer, Double>> searchResult) throws IOException {
@@ -86,16 +113,18 @@ public class DifferentialSearch {
 
             for (Map.Entry<Integer, Double> pair : current.entrySet()) {
                 if (pair.getValue() > bounds[i]) {
-                //if (pair.getValue() > (1.0 / (1 << 10))) {
                     previous.put(pair.getKey(), pair.getValue());
                 }
             }
 
-            System.out.println();
+            /*System.out.println();
             System.out.println("Round #" + i);
             System.out.println();
-            System.out.println("Survived : " + previous);
+            System.out.println("Survived : " + previous);*/
         }
+
+        System.out.println("alpha = " + alpha);
+        System.out.println("diffs = " + previous);
 
         return previous;
     }
