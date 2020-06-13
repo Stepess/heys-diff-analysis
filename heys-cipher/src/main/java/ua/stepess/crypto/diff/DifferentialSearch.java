@@ -9,9 +9,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class DifferentialSearch {
 
@@ -49,15 +48,24 @@ public class DifferentialSearch {
         // cleanup
         differentials.entrySet().removeIf(e -> e.getValue() == null || e.getValue().isEmpty());
 
-        /*var ciphertext = new HashMap<Integer, Integer>();
+        var ciphertext = new HashMap<Integer, Integer>();
 
         for (int x = 0; x < VECTORS_NUM; x++) {
             ciphertext.put(x, HEYS.encryptBlock(x, DEFAULT_KEY));
         }
 
-        for (Map.Entry<Integer, List<Integer>> diff : differentials.entrySet()) {
+        Map<Integer, Set<Integer>> convertedDifferentials = differentials.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().keySet()));
+
+
+
+        /*for (Map.Entry<Integer, Set<Integer>> diff : convertedDifferentials.entrySet()) {
             attack(diff.getKey(), diff.getValue(), ciphertext, DEFAULT_KEY);
         }*/
+
+        var diff = convertedDifferentials.get(3);
+        attack(3, diff, ciphertext, DEFAULT_KEY);
 
     }
 
@@ -79,7 +87,8 @@ public class DifferentialSearch {
 
     private static Map<Integer, Map<Integer, Double>> readDifferentialsFromFile(String fileName) throws IOException {
         var srcFile = new File(fileName);
-        return OBJECT_MAPPER.readValue(srcFile, new TypeReference<>() {});
+        return OBJECT_MAPPER.readValue(srcFile, new TypeReference<>() {
+        });
     }
 
     private static void writeToDisk(Map<Integer, Map<Integer, Double>> searchResult) throws IOException {
@@ -129,32 +138,44 @@ public class DifferentialSearch {
         return previous;
     }
 
-    public static void attack(int alpha, List<Integer> betas, Map<Integer, Integer> ciphertexts, String key) {
+    public static void attack(int alpha, Collection<Integer> betas, Map<Integer, Integer> ciphertexts, String key) {
         int lastKey = Integer.valueOf(key.substring(24), 16);
 
+        int[] keyScore = new int[VECTORS_NUM];
+
+        int mostProbableKey = 0;
+        int mostProbableKeyScore = 0;
+
         for (int beta : betas) {
-            int count = 0;
-            int mostProbableKey = 0;
+
 
             for (int k = 0; k < VECTORS_NUM; k++) {
-                int currentKeyScore = 0;
 
-                for (int x = 0; x < VECTORS_NUM; x++) {
-                    if ((HEYS.doDecryptionRound(ciphertexts.get(x), k) ^
-                            HEYS.doDecryptionRound(ciphertexts.get(x ^ alpha), k)) == beta)
-                        currentKeyScore++;
+
+                for (Map.Entry<Integer, Integer> c : ciphertexts.entrySet()) {
+                    if (
+                            (
+                                    HEYS.doDecryptionRound(c.getValue(), k) ^
+                                            HEYS.doDecryptionRound(ciphertexts.get(c.getKey() ^ alpha), k)
+                            ) == beta) {
+                        keyScore[k]++;
+                    }
                 }
 
-                if (currentKeyScore > count) {
-                    count = currentKeyScore;
+                if (keyScore[k] > mostProbableKey) {
+                    mostProbableKeyScore = keyScore[k];
                     mostProbableKey = k;
                 }
 
             }
 
-            System.out.println(count);
-            System.out.println(mostProbableKey == lastKey);
         }
+
+        System.out.println(Arrays.toString(Arrays.stream(keyScore).filter(i -> i != 0).toArray()));
+
+        System.out.println();
+        System.out.println(mostProbableKey + " " + mostProbableKeyScore);
+        System.out.println(mostProbableKey == lastKey);
     }
 
     private static double[] calculateProbabilities(int alpha) {
