@@ -3,10 +3,8 @@ package ua.stepess.crypto.cipher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ua.stepess.crypto.SBox;
-import ua.stepess.util.SBoxFactory;
 
 import java.util.Arrays;
-import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -28,29 +26,6 @@ public class HeysCipherDebug implements BlockCipher {
         this.mask = parseInt(ONE.repeat(Math.max(0, n)), 2);
         this.numOfRounds = numOfRounds;
         this.sBox = sBox;
-    }
-
-    public static void main(String[] args) {
-        BlockCipher cipher = new HeysCipherDebug(4, 6, SBoxFactory.getDefaultSBox());
-        int numOfExperiments = 10_000_000;
-        long[] time = new long[numOfExperiments];
-        Random random = new Random();
-
-        for (int i = 0; i < numOfExperiments; i++) {
-            int block = random.nextInt();
-            long b = System.currentTimeMillis();
-            int c = cipher.doDecryptionRound(block, 0x1234);
-            time[i] = System.currentTimeMillis() - b;
-
-            c++;
-            doNothing(c);
-        }
-
-        System.out.println("Average: " + Arrays.stream(time).average());
-    }
-
-    private static void doNothing(int i) {
-
     }
 
     @Override

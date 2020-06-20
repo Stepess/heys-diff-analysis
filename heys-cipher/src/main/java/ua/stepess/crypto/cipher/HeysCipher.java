@@ -1,17 +1,13 @@
 package ua.stepess.crypto.cipher;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import ua.stepess.crypto.SBox;
 
 import java.util.Arrays;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.lang.Integer.parseInt;
 
 public class HeysCipher implements BlockCipher {
-    private static final Logger log = LoggerFactory.getLogger(HeysCipherDebug.class);
 
     public static final String ONE = "1";
 
@@ -110,11 +106,6 @@ public class HeysCipher implements BlockCipher {
         int[] roundKeys = generateRoundKeys(key);
 
         return encryptBlock(block, roundKeys);
-    }
-
-    private String toHexString(int[] roundKeys) {
-        return Arrays.stream(roundKeys).mapToObj(Integer::toHexString)
-                .collect(Collectors.joining(" "));
     }
 
     private int toLittleEndian(int num) {
