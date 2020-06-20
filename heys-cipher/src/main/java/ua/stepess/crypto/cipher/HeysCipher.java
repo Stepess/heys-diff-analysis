@@ -38,10 +38,28 @@ public class HeysCipher implements BlockCipher {
     }
 
     @Override
+    public byte[] encrypt(byte[] plaintext, int[] keys) {
+        var blocks = splitInputToBlocks(plaintext);
+        var encryptedBlocks = Arrays.stream(blocks)
+                .map(b -> encryptBlock(b, keys))
+                .toArray();
+        return convertBlocksToBytes(encryptedBlocks);
+    }
+
+    @Override
     public byte[] decrypt(byte[] ciphertext, String key) {
         var blocks = splitInputToBlocks(ciphertext);
         var decryptedBlocks = Arrays.stream(blocks)
                 .map(b -> decryptBlock(b, key))
+                .toArray();
+        return convertBlocksToBytes(decryptedBlocks);
+    }
+
+    @Override
+    public byte[] decrypt(byte[] ciphertext, int[] keys) {
+        var blocks = splitInputToBlocks(ciphertext);
+        var decryptedBlocks = Arrays.stream(blocks)
+                .map(b -> decryptBlock(b, keys))
                 .toArray();
         return convertBlocksToBytes(decryptedBlocks);
     }
@@ -80,9 +98,7 @@ public class HeysCipher implements BlockCipher {
     }
 
     @Override
-    public int encryptBlock(int block, String key) {
-        int[] roundKeys = generateRoundKeys(key);
-
+    public int encryptBlock(int block, int[] roundKeys) {
         log.debug("Generated round keys [{}]", toHexString(roundKeys));
 
         block = toLittleEndian(block);
@@ -102,6 +118,13 @@ public class HeysCipher implements BlockCipher {
         log.debug("ciphertext: {} : {}", Integer.toHexString(ciphertext), Integer.toBinaryString(ciphertext));
 
         return ciphertext;
+    }
+
+    @Override
+    public int encryptBlock(int block, String key) {
+        int[] roundKeys = generateRoundKeys(key);
+
+        return encryptBlock(block, roundKeys);
     }
 
     private String toHexString(int[] roundKeys) {
@@ -189,9 +212,7 @@ public class HeysCipher implements BlockCipher {
     }
 
     @Override
-    public int decryptBlock(int block, String key) {
-        int[] roundKeys = generateRoundKeys(key);
-
+    public int decryptBlock(int block, int[] roundKeys) {
         log.debug("Generated round keys [{}]", toHexString(roundKeys));
 
         log.debug("========= Start Round #{} =========", numOfRounds);
@@ -211,6 +232,13 @@ public class HeysCipher implements BlockCipher {
         block = toLittleEndian(block);
 
         return block;
+    }
+
+    @Override
+    public int decryptBlock(int block, String key) {
+        int[] roundKeys = generateRoundKeys(key);
+
+        return decryptBlock(block, roundKeys);
     }
 
     @Override
