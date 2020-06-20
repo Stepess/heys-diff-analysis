@@ -4,10 +4,21 @@ import static java.util.Arrays.copyOf;
 
 public class SBox {
 
-    private int[] substitution;
+    private final int[] substitution;
+    private final int[] reverseSubstitution;
+
 
     public SBox(int[] substitution) {
         this.substitution = copyOf(substitution, substitution.length);
+        this.reverseSubstitution = reverseSBox(substitution);
+    }
+
+    private static int[] reverseSBox(int[] SBox) {
+        int[] reverseSBox = new int[SBox.length];
+        for (int i = 0; i < SBox.length; i++) {
+            reverseSBox[SBox[i]] = i;
+        }
+        return reverseSBox;
     }
 
     public int substitute(int input) {
@@ -15,12 +26,7 @@ public class SBox {
     }
 
     public int reverseSubstitute(int input) {
-        for (int i = 0; i < substitution.length; i++) {
-            if (substitution[i] == input) {
-                return i;
-            }
-        }
-        throw new ArithmeticException("Element not found");
+        return reverseSubstitution[input];
     }
 
 }

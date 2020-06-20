@@ -12,8 +12,7 @@ import java.util.stream.IntStream;
 
 import static java.lang.Integer.parseInt;
 
-public class HeysCipher implements BlockCipher {
-
+public class HeysLikeAlex implements BlockCipher{
     private static final Logger log = LoggerFactory.getLogger(HeysCipher.class);
 
     public static final String ONE = "1";
@@ -23,14 +22,14 @@ public class HeysCipher implements BlockCipher {
     private int numOfRounds;
     private SBox sBox;
 
-    public HeysCipher(int n, int numOfRounds, SBox sBox) {
+    public HeysLikeAlex(int n, int numOfRounds, SBox sBox) {
         this.n = n;
         this.mask = parseInt(ONE.repeat(Math.max(0, n)), 2);
         this.numOfRounds = numOfRounds;
         this.sBox = sBox;
     }
 
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         BlockCipher cipher = new HeysCipher(4, 6, SBoxFactory.getDefaultSBox());
         int numOfExperiments = 10_000_000;
         long[] time = new long[numOfExperiments];
@@ -47,7 +46,7 @@ public class HeysCipher implements BlockCipher {
         }
 
         System.out.println("Average: " + Arrays.stream(time).average());
-    }
+    }*/
 
     private static void doNothing(int i) {
 
@@ -253,9 +252,15 @@ public class HeysCipher implements BlockCipher {
             log.debug("plaintext:   {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
         }
 
-       // block = toLittleEndian(block);
+        // block = toLittleEndian(block);
 
-        return block ^ roundKeys[0];
+        return block ^ roundKeys[numOfRounds];
+    }
+
+    public static void main(String[] args) {
+        for (int i = 6; i > 0; i--) {
+            System.out.println(i);
+        }
     }
 
     @Override
