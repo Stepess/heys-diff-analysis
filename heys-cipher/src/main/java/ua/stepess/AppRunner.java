@@ -39,6 +39,15 @@ public class AppRunner {
                 .peek(System.out::println)
                 .collect(Collectors.toList());
 
+        /*for (Pair differential : filteredDifferentials) {
+            Map<Integer, Integer> data = DataUtil.generateData(keys, differential.sampleSize(), differential.getA());
+
+            int key = DifferentialCryptoanalysis.recoverLast(data, differential.getA(), differential.getB());
+            System.out.println(Integer.toHexString(key));
+        }*/
+
+        filteredDifferentials = List.of(new Pair(0x2, 0x8888, 0.000765));
+
         for (Pair differential : filteredDifferentials) {
             Map<Integer, Integer> data = DataUtil.generateData(keys, differential.sampleSize(), differential.getA());
 

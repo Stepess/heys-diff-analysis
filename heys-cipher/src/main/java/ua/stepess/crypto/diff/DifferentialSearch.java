@@ -2,6 +2,8 @@ package ua.stepess.crypto.diff;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ua.stepess.analysis.DataUtil;
+import ua.stepess.analysis.DifferentialCryptoanalysis;
 import ua.stepess.crypto.cipher.BlockCipher;
 import ua.stepess.util.HeysCipherFactory;
 
@@ -11,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class DifferentialSearch {
 
@@ -34,6 +37,8 @@ public class DifferentialSearch {
                 0xc000, 0x0c00, 0x00c0, 0x000c,
         };
 
+        int[] keys = {29345, 289, 57561, 51768, 46247, 8401, 35777};
+
         var fileName = "differentials.json";
         Map<Integer, Map<Integer, Double>> differentials;
 
@@ -45,28 +50,45 @@ public class DifferentialSearch {
             writeToDisk(differentials);
         }
 
-        // cleanup
-        differentials.entrySet().removeIf(e -> e.getValue() == null || e.getValue().isEmpty());
+        List<Differential> diffs = differentials.entrySet().stream()
+                .filter(e -> e.getValue() != null && !e.getValue().isEmpty())
+                .flatMap(e -> streamFromMap(e).map(e1 -> Differential.of(e.getKey(), e1.getKey(), e1.getValue())))
+                .collect(Collectors.toList());
 
-        var ciphertext = new HashMap<Integer, Integer>();
+        //writeToDisk(diffs);
+
+        List<Differential> filteredDifferentials = diffs.stream()
+                .filter(p -> DifferentialCryptoanalysis.differentialSize(p.b) == 4)
+                .peek(System.out::println)
+                .collect(Collectors.toList());
+
+        /*var ciphertext = new HashMap<Integer, Integer>();
 
         for (int x = 0; x < VECTORS_NUM; x++) {
             ciphertext.put(x, HEYS.encryptBlock(x, DEFAULT_KEY));
-        }
+        }*/
 
-        Map<Integer, Set<Integer>> convertedDifferentials = differentials.entrySet()
+        /*Map<Integer, Set<Integer>> convertedDifferentials = differentials.entrySet()
                 .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().keySet()));
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().keySet()));*/
 
 
+        //for (Differential differential : filteredDifferentials) {
+            //attack(differential.a, differential.b, differential.probability, keys);
+            attack(0x2, 0x8888, 0.000765, keys);
+        //}
 
         /*for (Map.Entry<Integer, Set<Integer>> diff : convertedDifferentials.entrySet()) {
             attack(diff.getKey(), diff.getValue(), ciphertext, DEFAULT_KEY);
         }*/
 
-        var diff = convertedDifferentials.get(3);
-        attack(3, diff, ciphertext, DEFAULT_KEY);
+        /*var diff = convertedDifferentials.get(3);
+        attack(3, diff, ciphertext, DEFAULT_KEY);*/
 
+    }
+
+    private static Stream<Map.Entry<Integer, Double>> streamFromMap(Map.Entry<Integer, Map<Integer, Double>> e) {
+        return e.getValue().entrySet().stream();
     }
 
     private static boolean isDifferentialsCalculated(String fileName) {
@@ -93,6 +115,12 @@ public class DifferentialSearch {
 
     private static void writeToDisk(Map<Integer, Map<Integer, Double>> searchResult) throws IOException {
         var file = new File("differentials.json");
+
+        OBJECT_MAPPER.writeValue(file, searchResult);
+    }
+
+    private static void writeToDisk(List<Differential> searchResult) throws IOException {
+        var file = new File("differentials-converted.json");
 
         OBJECT_MAPPER.writeValue(file, searchResult);
     }
@@ -136,6 +164,45 @@ public class DifferentialSearch {
         System.out.println("diffs = " + previous);
 
         return previous;
+    }
+
+    public static void attack(int alpha, int beta, double prob, int[] key) {
+        //int lastKey = Integer.valueOf(key.substring(24), 16);
+        int lastKey = key[key.length - 1];
+
+        Map<Integer, Integer> ciphertexts = DataUtil.generateData(key, (int) (6 / prob), alpha);
+
+        int[] keyScore = new int[VECTORS_NUM];
+
+        int mostProbableKey = 0;
+        int mostProbableKeyScore = 0;
+
+        for (int k = 0; k < VECTORS_NUM; k++) {
+
+            for (Map.Entry<Integer, Integer> p : ciphertexts.entrySet()) {
+                int x = p.getKey();
+                int xa = x ^ alpha;
+
+                int y = p.getValue();
+                int ya = ciphertexts.get(xa);
+
+                int difference = HEYS.doDecryptionRound(y, k) ^ HEYS.doDecryptionRound(ya, k);
+
+                if (difference == beta) keyScore[k]++;
+            }
+
+            if (keyScore[k] > mostProbableKeyScore) {
+                mostProbableKeyScore = keyScore[k];
+                mostProbableKey = k;
+            }
+
+        }
+
+        //System.out.println(Arrays.toString(Arrays.stream(keyScore).filter(i -> i != 0).toArray()));
+
+        System.out.println();
+        System.out.println(mostProbableKey + " " + mostProbableKeyScore);
+        System.out.println(mostProbableKey == lastKey);
     }
 
     public static void attack(int alpha, Collection<Integer> betas, Map<Integer, Integer> ciphertexts, String key) {
