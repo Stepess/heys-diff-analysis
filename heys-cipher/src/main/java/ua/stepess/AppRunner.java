@@ -4,10 +4,8 @@ import ua.stepess.analysis.BranchAndLimitSearcher;
 import ua.stepess.analysis.DataUtil;
 import ua.stepess.analysis.DifferentialCryptoanalysis;
 import ua.stepess.analysis.Pair;
-import ua.stepess.crypto.cipher.HeysCipher;
 import ua.stepess.util.FileUtil;
 import ua.stepess.util.HeysCipherFactory;
-import ua.stepess.util.SBoxFactory;
 
 import java.nio.file.Path;
 import java.util.ArrayList;

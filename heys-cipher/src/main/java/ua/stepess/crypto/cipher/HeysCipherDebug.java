@@ -12,9 +12,9 @@ import java.util.stream.IntStream;
 
 import static java.lang.Integer.parseInt;
 
-public class HeysCipherFast implements BlockCipher {
+public class HeysCipherDebug implements BlockCipher {
 
-    private static final Logger log = LoggerFactory.getLogger(HeysCipherFast.class);
+    private static final Logger log = LoggerFactory.getLogger(HeysCipherDebug.class);
 
     public static final String ONE = "1";
 
@@ -23,14 +23,21 @@ public class HeysCipherFast implements BlockCipher {
     private int numOfRounds;
     private SBox sBox;
 
+    public HeysCipherDebug(int n, int numOfRounds, SBox sBox) {
+        this.n = n;
+        this.mask = parseInt(ONE.repeat(Math.max(0, n)), 2);
+        this.numOfRounds = numOfRounds;
+        this.sBox = sBox;
+    }
+
     public static void main(String[] args) {
-        BlockCipher cipher = new HeysCipherFast(4, 6, SBoxFactory.getDefaultSBox());
+        BlockCipher cipher = new HeysCipherDebug(4, 6, SBoxFactory.getDefaultSBox());
         int numOfExperiments = 10_000_000;
         long[] time = new long[numOfExperiments];
         Random random = new Random();
 
         for (int i = 0; i < numOfExperiments; i++) {
-            int block = random.nextInt(65536);
+            int block = random.nextInt();
             long b = System.currentTimeMillis();
             int c = cipher.doDecryptionRound(block, 0x1234);
             time[i] = System.currentTimeMillis() - b;
@@ -44,13 +51,6 @@ public class HeysCipherFast implements BlockCipher {
 
     private static void doNothing(int i) {
 
-    }
-
-    public HeysCipherFast(int n, int numOfRounds, SBox sBox) {
-        this.n = n;
-        this.mask = parseInt(ONE.repeat(Math.max(0, n)), 2);
-        this.numOfRounds = numOfRounds;
-        this.sBox = sBox;
     }
 
     @Override
@@ -126,13 +126,23 @@ public class HeysCipherFast implements BlockCipher {
     public int encryptBlock(int block, int[] roundKeys) {
         log.debug("Generated round keys [{}]", toHexString(roundKeys));
 
-        //block = toLittleEndian(block);
+        block = toLittleEndian(block);
 
         for (int i = 0; i < numOfRounds; i++) {
+            log.debug("========= Start Round #{} =========", i);
+            log.debug("plaintext:  {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
+            log.debug("key:        {} : {}", Integer.toHexString(roundKeys[i]), Integer.toBinaryString(roundKeys[i]));
             block = doEncryptionRound(block, roundKeys[i]);
+            log.debug("ciphertext: {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
         }
 
-        return block ^ roundKeys[numOfRounds];
+        log.debug("========= Start Round #{} =========", numOfRounds);
+        log.debug("plaintext:  {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
+        log.debug("key:        {} : {}", Integer.toHexString(roundKeys[numOfRounds]), Integer.toBinaryString(roundKeys[numOfRounds]));
+        var ciphertext = block ^ roundKeys[numOfRounds];
+        log.debug("ciphertext: {} : {}", Integer.toHexString(ciphertext), Integer.toBinaryString(ciphertext));
+
+        return ciphertext;
     }
 
     @Override
@@ -166,14 +176,14 @@ public class HeysCipherFast implements BlockCipher {
 
         var blocks = partitionOnBlocks(y);
 
-        var substitutedBlocks = Arrays.stream(blocks)
-                .map(sBox::substitute)
-                .toArray();
+        for (int i = 0; i < blocks.length; i++) {
+            blocks[i] = sBox.substitute(blocks[i]);
+        }
 
-        var substituted = convertToInt(substitutedBlocks);
+        var substituted = convertToInt(blocks);
         log.debug("S(x):       {} : {}", Integer.toHexString(substituted), Integer.toBinaryString(substituted));
 
-        var shuffledBlocks = shuffle(substitutedBlocks);
+        var shuffledBlocks = shuffle(blocks);
 
         return convertToInt(shuffledBlocks);
     }
@@ -185,7 +195,6 @@ public class HeysCipherFast implements BlockCipher {
         for (int i = 0; i < n; i++) {
             partitioned[i] = number >> (12 - n * i) & mask;
         }
-        ;
 
         return partitioned;
     }
@@ -228,14 +237,23 @@ public class HeysCipherFast implements BlockCipher {
 
     @Override
     public int decryptBlock(int block, int[] roundKeys) {
+        log.debug("Generated round keys [{}]", toHexString(roundKeys));
 
+        log.debug("========= Start Round #{} =========", numOfRounds);
+        log.debug("ciphertext:  {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
+        log.debug("key:         {} : {}", Integer.toHexString(roundKeys[numOfRounds]), Integer.toBinaryString(roundKeys[numOfRounds]));
         block = block ^ roundKeys[numOfRounds];
+        log.debug("plaintext:   {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
 
         for (int i = numOfRounds - 1; i > -1; i--) {
+            log.debug("========= Start Round #{} =========", i);
+            log.debug("ciphertext:  {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
+            log.debug("key:         {} : {}", Integer.toHexString(roundKeys[i]), Integer.toBinaryString(roundKeys[i]));
             block = doDecryptionRound(block, roundKeys[i]);
+            log.debug("plaintext:   {} : {}", Integer.toHexString(block), Integer.toBinaryString(block));
         }
 
-       // block = toLittleEndian(block);
+        block = toLittleEndian(block);
 
         return block;
     }
