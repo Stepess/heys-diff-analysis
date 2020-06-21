@@ -37,9 +37,9 @@ public class LinearAttack {
 
         System.out.println("A = " + approximations.size());
 
-        var recoverFirst = findMostProbableKeyForApproximations(data, approximations, keys[0]);
+        var firstKeys = findMostProbableKeysForApproximations(data, approximations, keys[0]);
 
-        recoverFirst.forEach((k, c) -> System.out.println("Key = " + Integer.toHexString(k) + " count = " + c));
+        firstKeys.forEach((k, c) -> System.out.println("Key = " + Integer.toHexString(k) + " count = " + c));
     }
 
     public static Map<Integer, Integer> generatePlaintextCiphertextPairs(int[] key, double probability) {
@@ -106,8 +106,24 @@ public class LinearAttack {
                 .map(e -> Approximation.of(alpha, e.getKey(), e.getValue()))
                 .collect(Collectors.toList());
     }
+
+    public static Map<Integer, Integer> findMostProbableKeysForApproximations(Map<Integer, Integer> plaintextCiphertextMap, List<Approximation> approximations) {
+        Map<Integer, Integer> keyScore = new HashMap<>();
+        for (Approximation approximation : approximations) {
+            System.out.println("Approximation: " + approximation);
+            var mostProbableKeysForApproximation =
+                    findMostProbableKeysForApproximation(plaintextCiphertextMap, approximation.a, approximation.b);
+            mostProbableKeysForApproximation.forEach(key ->
+                    keyScore.put(key, keyScore.getOrDefault(key, 0) + 1));
+
+            findFirst(keyScore, KEY_LIMIT).forEach((k, v) ->
+                    System.out.println("Key: " + Integer.toHexString(k) + " count: " + v));
+        }
+        return findFirst(keyScore, KEY_LIMIT);
+    }
+
     
-    public static Map<Integer, Integer> findMostProbableKeyForApproximations(Map<Integer, Integer> plaintextCiphertextMap, List<Approximation> approximations, int rightKey) {
+    public static Map<Integer, Integer> findMostProbableKeysForApproximations(Map<Integer, Integer> plaintextCiphertextMap, List<Approximation> approximations, int rightKey) {
         Map<Integer, Integer> keyScore = new HashMap<>();
         for (Approximation approximation : approximations) {
             System.out.println("Approximation: " + approximation);

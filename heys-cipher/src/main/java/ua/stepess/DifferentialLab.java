@@ -1,5 +1,6 @@
 package ua.stepess;
 
+import ua.stepess.crypto.diff.Differential;
 import ua.stepess.crypto.diff.DifferentialAttack;
 import ua.stepess.util.CryptoUtils;
 import ua.stepess.util.IOUtils;
@@ -10,7 +11,7 @@ import java.util.List;
 
 import static ua.stepess.crypto.diff.DifferentialAttack.VECTORS_NUM;
 
-public class Differential {
+public class DifferentialLab {
 
     public static final String DIRECTORY = "tmp/diff";
     public static final String IN_ = "in_";
@@ -23,8 +24,8 @@ public class Differential {
         var filteredDifferentials = DifferentialAttack.filterDiffs(differentials);
 
         samplePlaintexts(filteredDifferentials);
-        
-        for (ua.stepess.crypto.diff.Differential differential : filteredDifferentials) {
+
+        for (Differential differential : filteredDifferentials) {
             var plaintextCiphertext = new HashMap<Integer, Integer>();
 
             var in = CryptoUtils.read(buildName(IN_, differential));
@@ -40,15 +41,15 @@ public class Differential {
         }
     }
 
-    private static void samplePlaintexts(List<ua.stepess.crypto.diff.Differential> filteredDifferentials) {
-        for (ua.stepess.crypto.diff.Differential differential : filteredDifferentials) {
+    private static void samplePlaintexts(List<Differential> filteredDifferentials) {
+        for (Differential differential : filteredDifferentials) {
             var plaintexts = CryptoUtils.generatePlaintextWithDifference(
                     (int) (8 * differential.getProbability() * VECTORS_NUM), differential.getA());
             IOUtils.writeToDisk(buildName(IN_, differential), plaintexts);
         }
     }
 
-    private static String buildName(String prefix, ua.stepess.crypto.diff.Differential differential) {
+    private static String buildName(String prefix, Differential differential) {
         return DIRECTORY + prefix + Integer.toHexString(differential.getA())  + ".txt";
     }
 
