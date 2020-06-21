@@ -8,9 +8,9 @@ import java.util.Arrays;
 import static java.lang.Integer.parseInt;
 import static org.junit.jupiter.api.Assertions.*;
 
-class HeysCipherTest {
+class HeysCipherDebugTest {
 
-    private HeysCipher cipher = new HeysCipher(4, 6, SBoxFactory.getDefaultSBox());
+    private HeysCipherDebug cipher = new HeysCipherDebug(4, 6, SBoxFactory.getDefaultSBox());
 
     @Test
     void shouldEncrypt() {
