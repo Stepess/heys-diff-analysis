@@ -1,5 +1,9 @@
 package ua.stepess.util;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static ua.stepess.crypto.diff.DifferentialAttack.VECTORS_NUM;
@@ -14,5 +18,57 @@ public class CryptoUtils {
         }
 
         return keys;
+    }
+
+    private static void createPlaintexts() {
+        int[] input = generatePlaintext(8 * VECTORS_NUM / 5);
+
+        try {
+            Files.write(Path.of("tmp/linear/input"), toByteArray(input));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public static int[] read(String filename) {
+        try {
+            return toIntArray(Files.readAllBytes(Path.of(filename)));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static int[] toIntArray(byte[] bytes) {
+        int[] ints = new int[bytes.length / 2];
+        for (int i = 0; i < ints.length; i++) {
+            ints[i] = Byte.toUnsignedInt(bytes[2 * i]) | (Byte.toUnsignedInt(bytes[2 * i + 1]) << Byte.SIZE);
+        }
+        return ints;
+    }
+
+    private static byte[] toByteArray(int[] ints) {
+        byte[] bytes = new byte[2 * ints.length];
+        for (int i = 0; i < ints.length; i++) {
+            bytes[2 * i] = (byte) ints[i];
+            bytes[2 * i + 1] = (byte) (ints[i] >>> Byte.SIZE);
+        }
+        return bytes;
+    }
+
+    public static int[] generatePlaintext(int size) {
+        int[] ints = new int[size];
+        for (int i = 0; i < size; i++) {
+            ints[i] = ThreadLocalRandom.current().nextInt(VECTORS_NUM);
+        }
+        return ints;
+    }
+
+    public static int[] generatePlaintextWithDifference(int size, int diff) {
+        int[] ints = new int[2 * size];
+        for (int i = 0; i < size; i++) {
+            ints[2 * i] = ThreadLocalRandom.current().nextInt(VECTORS_NUM);
+            ints[2 * i + 1] = ints[2 * i] ^ diff;
+        }
+        return ints;
     }
 }

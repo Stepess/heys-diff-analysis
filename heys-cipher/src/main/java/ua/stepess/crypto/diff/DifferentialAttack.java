@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -49,16 +50,10 @@ public class DifferentialAttack {
             IOUtils.writeDifferentialsToDisk(fileName, rawDifferentials);
         }
 
-        var differentials = rawDifferentials.entrySet().stream()
-                .filter(DifferentialAttack::isNotImpassibleDifferential)
-                .flatMap(DifferentialAttack::toDifferentialStream)
-                .collect(Collectors.toList());
+        var differentials = rawDiffsToObj(rawDifferentials);
 
         System.out.println("Going to use the next differentials: ");
-        var filteredDifferentials = differentials.stream()
-                .filter(p -> countNotEmptyTetras(p.b) == 4)
-                .peek(System.out::println)
-                .collect(Collectors.toList());
+        var filteredDifferentials = filterDiffs(differentials);
 
         //int[] keys = CryptoUtils.generateKey();
         int[] keys =  {29345, 289, 57561, 51768, 46247, 8401, 0xace5};
@@ -72,6 +67,20 @@ public class DifferentialAttack {
         /*for (Differential differential : filteredDifferentials) {
             attack(differential.a, differential.b, differential.probability, keys);
         }*/
+    }
+
+    public static List<Differential> filterDiffs(List<Differential> differentials) {
+        return differentials.stream()
+                .filter(p -> countNotEmptyTetras(p.b) == 4)
+                .peek(System.out::println)
+                .collect(Collectors.toList());
+    }
+
+    public static List<Differential> rawDiffsToObj(Map<Integer, Map<Integer, Double>> rawDifferentials) {
+        return rawDifferentials.entrySet().stream()
+                .filter(DifferentialAttack::isNotImpassibleDifferential)
+                .flatMap(DifferentialAttack::toDifferentialStream)
+                .collect(Collectors.toList());
     }
 
     private static boolean isNotImpassibleDifferential(Map.Entry<Integer, Map<Integer, Double>> e) {
@@ -99,14 +108,20 @@ public class DifferentialAttack {
         return Files.exists(Path.of(fileName));
     }
 
-    public static void attack(int alpha, int beta, double prob, int[] key) {
-        int lastKey = key[key.length - 1];
+    public static void attack(int alpha, int beta, double prob, int[] keys) {
+        var plaintextCiphertextPairs = generatePlaintextCiphertextPairs(keys, prob, alpha);
 
+        var lastKey = keys[keys.length - 1];
+
+        var key = diffAtack(alpha, beta, plaintextCiphertextPairs);
+
+        System.out.println("Am I right? " + (key == lastKey));
+    }
+
+    public static int  diffAtack(int alpha, int beta, Map<Integer, Integer> plaintextCiphertextPairs) {
         System.out.println();
         System.out.println("Start attack!");
         System.out.println("alpha = " + Integer.toHexString(alpha) + " beta = " + Integer.toHexString(beta));
-
-        var plaintextCiphertextPairs = generatePlaintextCiphertextPairs(key, prob, alpha);
 
         int[] keyScore = new int[VECTORS_NUM];
 
@@ -140,7 +155,8 @@ public class DifferentialAttack {
         System.out.println();
         System.out.println("I'm not sure, but I guess it's: " + Integer.toHexString(mostProbableKey) + " key, it has score: "
                 + mostProbableKeyScore);
-        System.out.println("Am I right? " + (mostProbableKey == lastKey));
+
+        return mostProbableKey;
     }
 
     public static Map<Integer, Integer> generatePlaintextCiphertextPairs(int[] key, double probability, int a) {
