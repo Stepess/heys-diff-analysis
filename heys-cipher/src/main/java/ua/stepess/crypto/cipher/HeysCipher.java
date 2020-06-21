@@ -156,6 +156,22 @@ public class HeysCipher implements BlockCipher {
         return number;
     }
 
+    public int shuffle(int block) {
+        var blocks = partitionOnBlocks(block);
+        var shuffledBlocks = shuffle(blocks);
+        return convertToInt(shuffledBlocks);
+    }
+
+    public int substitute(int block) {
+        var blocks = partitionOnBlocks(block);
+
+        for (int i = 0; i < blocks.length; i++) {
+            blocks[i] = sBox.substitute(blocks[i]);
+        }
+
+        return convertToInt(blocks);
+    }
+
     int[] shuffle(int[] blocks) {
         int bit;
 

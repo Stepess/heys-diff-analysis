@@ -60,7 +60,7 @@ public class DifferentialAttack {
                 .peek(System.out::println)
                 .collect(Collectors.toList());
 
-        //int[] keys = generateKey();
+        //int[] keys = CryptoUtils.generateKey();
         int[] keys =  {29345, 289, 57561, 51768, 46247, 8401, 0xace5};
 
         System.out.println();
@@ -72,16 +72,6 @@ public class DifferentialAttack {
         /*for (Differential differential : filteredDifferentials) {
             attack(differential.a, differential.b, differential.probability, keys);
         }*/
-    }
-
-    private static int[] generateKey() {
-        var keys = new int[7];
-
-        for (int i = 0; i < keys.length; i++) {
-            keys[i] = ThreadLocalRandom.current().nextInt(VECTORS_NUM);
-        }
-
-        return keys;
     }
 
     private static boolean isNotImpassibleDifferential(Map.Entry<Integer, Map<Integer, Double>> e) {
