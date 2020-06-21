@@ -7,13 +7,14 @@ import ua.stepess.util.IOUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class DifferentialSearch {
+public class DifferentialAttack {
 
     public static final int VECTORS_NUM = 0x10000;
 
@@ -38,8 +39,6 @@ public class DifferentialSearch {
                 0xf000, 0x0f00, 0x00f0, 0x000f,
         };
 
-        int[] keys = {29345, 289, 57561, 51768, 46247, 8401, 35777};
-
         var fileName = "out/differentials.json";
         Map<Integer, Map<Integer, Double>> rawDifferentials;
 
@@ -51,19 +50,38 @@ public class DifferentialSearch {
         }
 
         var differentials = rawDifferentials.entrySet().stream()
-                .filter(DifferentialSearch::isNotImpassibleDifferential)
-                .flatMap(DifferentialSearch::toDifferentialStream)
+                .filter(DifferentialAttack::isNotImpassibleDifferential)
+                .flatMap(DifferentialAttack::toDifferentialStream)
                 .collect(Collectors.toList());
 
+        System.out.println("Going to use the next differentials: ");
         var filteredDifferentials = differentials.stream()
                 .filter(p -> countNotEmptyTetras(p.b) == 4)
                 .peek(System.out::println)
                 .collect(Collectors.toList());
 
+        //int[] keys = generateKey();
+        int[] keys =  {29345, 289, 57561, 51768, 46247, 8401, 0xace5};
 
-        for (Differential differential : filteredDifferentials) {
+        System.out.println();
+        System.out.println("Key: " + Arrays.stream(keys).mapToObj(Integer::toHexString)
+                .collect(Collectors.joining(" ")));
+
+        System.out.println("Should recover: " + Integer.toHexString(keys[keys.length - 1]));
+
+        /*for (Differential differential : filteredDifferentials) {
             attack(differential.a, differential.b, differential.probability, keys);
+        }*/
+    }
+
+    private static int[] generateKey() {
+        var keys = new int[7];
+
+        for (int i = 0; i < keys.length; i++) {
+            keys[i] = ThreadLocalRandom.current().nextInt(VECTORS_NUM);
         }
+
+        return keys;
     }
 
     private static boolean isNotImpassibleDifferential(Map.Entry<Integer, Map<Integer, Double>> e) {
@@ -93,6 +111,10 @@ public class DifferentialSearch {
 
     public static void attack(int alpha, int beta, double prob, int[] key) {
         int lastKey = key[key.length - 1];
+
+        System.out.println();
+        System.out.println("Start attack!");
+        System.out.println("alpha = " + Integer.toHexString(alpha) + " beta = " + Integer.toHexString(beta));
 
         var plaintextCiphertextPairs = generatePlaintextCiphertextPairs(key, prob, alpha);
 
@@ -126,12 +148,13 @@ public class DifferentialSearch {
         //System.out.println(Arrays.toString(Arrays.stream(keyScore).filter(i -> i != 0).toArray()));
 
         System.out.println();
-        System.out.println(mostProbableKey + " " + mostProbableKeyScore);
-        System.out.println(mostProbableKey == lastKey);
+        System.out.println("I'm not sure, but I guess it's: " + Integer.toHexString(mostProbableKey) + " key, it has score: "
+                + mostProbableKeyScore);
+        System.out.println("Am I right? " + (mostProbableKey == lastKey));
     }
 
     public static Map<Integer, Integer> generatePlaintextCiphertextPairs(int[] key, double probability, int a) {
-        int size = (int) (6 / probability);
+        int size = (int) (12 / probability);
         Map<Integer, Integer> pairs = new HashMap<>();
         for (int i = 0; i < size; i++) {
             int x = ThreadLocalRandom.current().nextInt(VECTORS_NUM);
@@ -154,11 +177,13 @@ public class DifferentialSearch {
     }
 
     public static Map<Integer, Double> search(int alpha, int r) {
+        System.out.println("alpha = " + Integer.toHexString(alpha));
+
         Map<Integer, Double> previous = new HashMap<>();
         previous.put(alpha, 1.0);
 
         // the last one should be >> 0.00003051757
-        double[] bounds = {0.001, 0.00013, 0.0009, 0.00007, 0.001};
+        double[] bounds = {0.001, 0.0008, 0.0005, 0.00001, 0.00005};
 
         Map<Integer, Double> current = new HashMap<>();
 
@@ -181,14 +206,8 @@ public class DifferentialSearch {
                     previous.put(pair.getKey(), pair.getValue());
                 }
             }
-
-            /*System.out.println();
-            System.out.println("Round #" + i);
-            System.out.println();
-            System.out.println("Survived : " + previous);*/
         }
 
-        System.out.println("alpha = " + alpha);
         System.out.println("diffs = " + previous);
 
         return previous;
