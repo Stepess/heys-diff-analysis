@@ -2,9 +2,12 @@ package ua.stepess.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ua.stepess.crypto.linear.Approximation;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.List;
 import java.util.Map;
 
 public class IOUtils {
@@ -21,6 +24,27 @@ public class IOUtils {
         var file = new File(fileName);
 
         OBJECT_MAPPER.writeValue(file, searchResult);
+    }
+
+    public static void writeToDisk(String fileName, Object data) {
+        var file = new File(fileName);
+
+        try {
+            OBJECT_MAPPER.writeValue(file, data);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public static List<Approximation> readApproximations(String fileName) {
+        var srcFile = new File(fileName);
+
+        try {
+            return OBJECT_MAPPER.readValue(srcFile, new TypeReference<>() {
+            });
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
 }
