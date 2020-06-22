@@ -1,13 +1,15 @@
 package ua.stepess.crypto.cipher;
 
 import ua.stepess.crypto.SBox;
+import ua.stepess.util.HeysCipherFactory;
 
 import java.util.Arrays;
+import java.util.Random;
 import java.util.stream.IntStream;
 
 import static java.lang.Integer.parseInt;
 
-public class HeysCipher implements BlockCipher {
+public class HeysCipherFast implements BlockCipher {
 
     public static final String ONE = "1";
 
@@ -16,11 +18,38 @@ public class HeysCipher implements BlockCipher {
     private int numOfRounds;
     private SBox sBox;
 
-    public HeysCipher(int n, int numOfRounds, SBox sBox) {
+    private static final int[] S_BOX = new int[] {
+            0x8, 0x0, 0xC, 0x4, 0x9, 0x6, 0x7, 0xB, 0x2, 0x3, 0x1, 0xF, 0x5, 0xE, 0xA, 0xD
+    };
+
+    public HeysCipherFast(int n, int numOfRounds, SBox sBox) {
         this.n = n;
         this.mask = parseInt(ONE.repeat(Math.max(0, n)), 2);
         this.numOfRounds = numOfRounds;
         this.sBox = sBox;
+    }
+
+    public static void main(String[] args) {
+        BlockCipher cipher = HeysCipherFactory.getDefaultHeysCipher();
+        int numOfExperiments = 10_000_000;
+        long[] time = new long[numOfExperiments];
+        Random random = new Random();
+
+        for (int i = 0; i < numOfExperiments; i++) {
+            int block = random.nextInt(65536);
+            long b = System.currentTimeMillis();
+            int c = cipher.doDecryptionRound(block, 0x1234);
+            time[i] = System.currentTimeMillis() - b;
+
+            c++;
+            doNothing(c);
+        }
+
+        System.out.println("Average: " + Arrays.stream(time).average());
+    }
+
+    private static void doNothing(int i) {
+
     }
 
     @Override
@@ -122,17 +151,7 @@ public class HeysCipher implements BlockCipher {
 
     @Override
     public int doEncryptionRound(int x, int k) {
-        int y = x ^ k;
-
-        var blocks = partitionOnBlocks(y);
-
-        for (int i = 0; i < blocks.length; i++) {
-            blocks[i] = sBox.substitute(blocks[i]);
-        }
-
-        var shuffledBlocks = shuffle(blocks);
-
-        return convertToInt(shuffledBlocks);
+        return shuffle(substitute(x ^ k));
     }
 
     // TODO: what should we do if number bitlength bigger then 16
@@ -156,38 +175,69 @@ public class HeysCipher implements BlockCipher {
         return number;
     }
 
-    public int shuffle(int block) {
-        var blocks = partitionOnBlocks(block);
-        var shuffledBlocks = shuffle(blocks);
-        return convertToInt(shuffledBlocks);
+    int shuffle(int block) {
+        int temp = block;
+        block = 0;
+        block |= (temp & 0x8421);
+        block |= (temp & 0x0842) << 3;
+        block |= (temp & 0x0084) << 6;
+        block |= (temp & 0x0008) << 9;
+        block |= (temp & 0x4210) >> 3;
+        block |= (temp & 0x2100) >> 6;
+        block |= (temp & 0x1000) >> 9;
+        return block;
     }
 
-    public int substitute(int block) {
-        var blocks = partitionOnBlocks(block);
+    int substitute(int block) {
+        int b = block;
 
-        for (int i = 0; i < blocks.length; i++) {
-            blocks[i] = sBox.substitute(blocks[i]);
-        }
+        int nibble = b & 0xF;
+        int temp = (sBox.substitute(nibble));
+        b &= 0xFFF0;
+        b |= temp;
 
-        return convertToInt(blocks);
+        nibble = (b >> 4) & 0xF;
+        temp = (sBox.substitute(nibble) << 4);
+        b &= 0xFF0F;
+        b |= temp;
+
+        nibble = (b >> 8) & 0xF;
+        temp = (sBox.substitute(nibble) << 8);
+        b &= 0xF0FF;
+        b |= temp;
+
+        nibble = (b >> 12) & 0xF;
+        temp = (sBox.substitute(nibble) << 12);
+        b &= 0x0FFF;
+        b |= temp;
+
+        return b;
     }
 
-    int[] shuffle(int[] blocks) {
-        int bit;
+    int reverseSubstitute(int block) {
+        int b = block;
 
-        int[] shuffledBlocks = new int[n];
+        int nibble = b & 0xF;
+        int temp = (sBox.reverseSubstitute(nibble));
+        b &= 0xFFF0;
+        b |= temp;
 
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                bit = getBitAt(blocks[j], n - i - 1);
+        nibble = (b >> 4) & 0xF;
+        temp = (sBox.reverseSubstitute(nibble) << 4);
+        b &= 0xFF0F;
+        b |= temp;
 
-                if (bit == 1) {
-                    shuffledBlocks[i] = setBitAt(shuffledBlocks[i], n - j - 1);
-                }
-            }
-        }
+        nibble = (b >> 8) & 0xF;
+        temp = (sBox.reverseSubstitute(nibble) << 8);
+        b &= 0xF0FF;
+        b |= temp;
 
-        return shuffledBlocks;
+        nibble = (b >> 12) & 0xF;
+        temp = (sBox.reverseSubstitute(nibble) << 12);
+        b &= 0x0FFF;
+        b |= temp;
+
+        return b;
     }
 
     private int setBitAt(int number, int bitPosition) {
@@ -217,16 +267,6 @@ public class HeysCipher implements BlockCipher {
 
     @Override
     public int doDecryptionRound(int x, int k) {
-        x = x ^ k;
-
-        var shuffledBlocks = partitionOnBlocks(x);
-
-        var blocks = shuffle(shuffledBlocks);
-
-        for (int i = 0; i < blocks.length; i++) {
-            blocks[i] = sBox.reverseSubstitute(blocks[i]);
-        }
-
-        return convertToInt(blocks);
+        return reverseSubstitute(shuffle(x ^ k));
     }
 }
