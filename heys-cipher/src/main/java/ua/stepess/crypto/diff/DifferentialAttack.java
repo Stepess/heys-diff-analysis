@@ -1,6 +1,7 @@
 package ua.stepess.crypto.diff;
 
 import ua.stepess.crypto.cipher.BlockCipher;
+import ua.stepess.util.CryptoUtils;
 import ua.stepess.util.HeysCipherFactory;
 import ua.stepess.util.IOUtils;
 
@@ -40,7 +41,7 @@ public class DifferentialAttack {
                 0xf000, 0x0f00, 0x00f0, 0x000f,
         };
 
-        var fileName = "out/differentials.json";
+        var fileName = "tmp/diff/differentials.json";
         Map<Integer, Map<Integer, Double>> rawDifferentials;
 
         if (isDifferentialsCalculated(fileName)) {
@@ -55,8 +56,7 @@ public class DifferentialAttack {
         System.out.println("Going to use the next differentials: ");
         var filteredDifferentials = filterDiffs(differentials);
 
-        //int[] keys = CryptoUtils.generateKey();
-        int[] keys =  {29345, 289, 57561, 51768, 46247, 8401, 0xace5};
+        int[] keys = CryptoUtils.generateKey();
 
         System.out.println();
         System.out.println("Key: " + Arrays.stream(keys).mapToObj(Integer::toHexString)
@@ -64,9 +64,9 @@ public class DifferentialAttack {
 
         System.out.println("Should recover: " + Integer.toHexString(keys[keys.length - 1]));
 
-        /*for (Differential differential : filteredDifferentials) {
+        for (Differential differential : filteredDifferentials) {
             attack(differential.a, differential.b, differential.probability, keys);
-        }*/
+        }
     }
 
     public static List<Differential> filterDiffs(List<Differential> differentials) {
@@ -189,7 +189,7 @@ public class DifferentialAttack {
         previous.put(alpha, 1.0);
 
         // the last one should be >> 0.00003051757
-        double[] bounds = {0.001, 0.0008, 0.0005, 0.00001, 0.00005};
+        double[] bounds = {0.001, 0.0008, 0.0003, 0.00001, 0.001};
 
         Map<Integer, Double> current = new HashMap<>();
 

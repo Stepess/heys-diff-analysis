@@ -11,7 +11,11 @@ public class HeysCipherFactory {
     public static final int BLOCK_SIZE = N*N;
 
     public static BlockCipher getDefaultHeysCipher() {
-        return new HeysCipherFast(N, NUM_OF_ROUNDS, SBoxFactory.getDefaultSBox());
+        return new HeysCipher(N, NUM_OF_ROUNDS, SBoxFactory.getDefaultSBox());
+    }
+
+    public static BlockCipher getFastHeysCipher() {
+        return new HeysCipherFast();
     }
 
 }

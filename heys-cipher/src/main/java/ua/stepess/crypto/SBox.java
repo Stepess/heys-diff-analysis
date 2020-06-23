@@ -13,7 +13,7 @@ public class SBox {
         this.reverseSubstitution = reverseSBox(substitution);
     }
 
-    private static int[] reverseSBox(int[] SBox) {
+    public static int[] reverseSBox(int[] SBox) {
         int[] reverseSBox = new int[SBox.length];
         for (int i = 0; i < SBox.length; i++) {
             reverseSBox[SBox[i]] = i;

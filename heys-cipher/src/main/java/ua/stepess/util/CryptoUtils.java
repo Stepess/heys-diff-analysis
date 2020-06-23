@@ -20,11 +20,21 @@ public class CryptoUtils {
         return keys;
     }
 
-    private static void createPlaintexts() {
+    public static void createPlaintexts() {
         int[] input = generatePlaintext(8 * VECTORS_NUM / 5);
 
+        writeAsBinary(input, "tmp/linear/input");
+    }
+
+    public static void createPlaintexts(int a, int size) {
+        int[] input = generatePlaintextWithDifference(size, a);
+
+        writeAsBinary(input, "tmp/diff/input");
+    }
+
+    public static void writeAsBinary(int[] input, String filename) {
         try {
-            Files.write(Path.of("tmp/linear/input"), toByteArray(input));
+            Files.write(Path.of(filename), toByteArray(input));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

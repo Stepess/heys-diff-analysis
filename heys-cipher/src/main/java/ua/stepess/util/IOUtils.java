@@ -7,6 +7,8 @@ import ua.stepess.crypto.linear.Approximation;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +28,7 @@ public class IOUtils {
         OBJECT_MAPPER.writeValue(file, searchResult);
     }
 
-    public static void writeToDisk(String fileName, Object data) {
+    public static void writeToDiskAsJson(String fileName, Object data) {
         var file = new File(fileName);
 
         try {

@@ -1,6 +1,6 @@
 package ua.stepess.crypto.linear;
 
-import ua.stepess.crypto.cipher.HeysCipher;
+import ua.stepess.crypto.cipher.HeysCipherFast;
 import ua.stepess.util.CryptoUtils;
 import ua.stepess.util.HeysCipherFactory;
 import ua.stepess.util.IOUtils;
@@ -17,11 +17,12 @@ public class LinearAttack {
 
     private static final int PER_APPROXIMATION_KEY_LIMIT = 100;
 
-    private static final HeysCipher CIPHER = (HeysCipher) HeysCipherFactory.getDefaultHeysCipher();
+    private static final HeysCipherFast CIPHER = (HeysCipherFast) HeysCipherFactory.getFastHeysCipher();
 
     public static void main(String[] args) {
         generateApproximations();
 
+        if (true) return;
         int[] keys = CryptoUtils.generateKey();
 
         System.out.println("Should be: " + Integer.toHexString(keys[0]));
@@ -57,15 +58,14 @@ public class LinearAttack {
         for (int i = 0; i < HeysCipherFactory.N; i++) {
             for (int j = 1; j < (1 << HeysCipherFactory.N); j++) {
                 int a = j << (4 * i);
-                System.out.println("a = " + Integer.toHexString(a));
-                pairs.addAll(search(a,5));
+                pairs.addAll(search(a, 5));
             }
         }
         System.out.println("Approximations:");
         pairs.forEach(System.out::println);
         System.out.println("Total size = " + pairs.size());
 
-        IOUtils.writeToDisk("out/approximation.json", pairs);
+        IOUtils.writeToDiskAsJson("tmp/linear/approximation.json", pairs);
     }
 
     public static List<Approximation> search(int alpha, int r) {
@@ -74,8 +74,7 @@ public class LinearAttack {
         Map<Integer, Double> previous = new HashMap<>();
         previous.put(alpha, 1.0);
 
-        // the last one should be >> 0.00003051757
-        double[] bounds = {0.001, 0.0008, 0.0005, 0.00001, 0.00005};
+        double[] bounds = {0.00015, 0.00015, 0.00015, 0.00015, 0.00015};
 
         Map<Integer, Double> current = new HashMap<>();
 
@@ -122,7 +121,7 @@ public class LinearAttack {
         return findFirst(keyScore, KEY_LIMIT);
     }
 
-    
+
     public static Map<Integer, Integer> findMostProbableKeysForApproximations(Map<Integer, Integer> plaintextCiphertextMap, List<Approximation> approximations, int rightKey) {
         Map<Integer, Integer> keyScore = new HashMap<>();
         for (Approximation approximation : approximations) {
@@ -169,7 +168,8 @@ public class LinearAttack {
         var distribution = new double[VECTORS_NUM];
         for (int b = 0; b < distribution.length; b++) {
             distribution[b] = 1.0;
-            b = CIPHER.shuffle(b);
+            b = CIPHER.permutation(b);
+            //b = CIPHER.shuffle(b);
             for (int i = 0; i < HeysCipherFactory.N; i++) {
                 int aPrime = (a >>> (4 * i)) & 0xF;
                 int bPrime = (b >>> (4 * i)) & 0xF;
@@ -188,15 +188,15 @@ public class LinearAttack {
     }
 
     private static double[][] computeLinearPotentials() {
-        double[][] lp = new double[1 << HeysCipherFactory.N][1 << HeysCipherFactory.N];
-        for (int a = 0; a < (1 << HeysCipherFactory.N); a++) {
-            for (int b = 0; b < (1 << HeysCipherFactory.N); b++) {
+        double[][] lp = new double[16][16];
+        for (int a = 0; a < 16; a++) {
+            for (int b = 0; b < 16; b++) {
                 double value = 0;
-                for (int x = 0; x < (1 << HeysCipherFactory.N); x++) {
-                    int degree = scalarProduct(a, x) ^ scalarProduct(b, CIPHER.substitute(x));
+                for (int x = 0; x < 16; x++) {
+                    int degree = scalarProduct(a, x) ^ scalarProduct(b, CIPHER.substitution(x));
                     value += degree == 1 ? -1 : 1;
                 }
-                lp[a][b] = Math.pow(value / (1 << HeysCipherFactory.N), 2);
+                lp[a][b] = Math.pow(value / 16, 2);
             }
         }
         return lp;
@@ -209,5 +209,5 @@ public class LinearAttack {
                 .limit(size)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
-    
+
 }
