@@ -3,3 +3,5 @@
 heys-cipher/build
 heys-cipher/out
 *.json
+heys.bin
+tmp/

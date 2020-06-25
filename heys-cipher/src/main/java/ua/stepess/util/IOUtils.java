@@ -26,7 +26,7 @@ public class IOUtils {
         OBJECT_MAPPER.writeValue(file, searchResult);
     }
 
-    public static void writeToDisk(String fileName, Object data) {
+    public static void writeToDiskAsJson(String fileName, Object data) {
         var file = new File(fileName);
 
         try {

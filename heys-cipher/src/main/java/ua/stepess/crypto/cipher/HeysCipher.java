@@ -204,7 +204,7 @@ public class HeysCipher implements BlockCipher {
             block = doDecryptionRound(block, roundKeys[i]);
         }
 
-        return block ^ roundKeys[numOfRounds];
+        return block ^ roundKeys[0];
     }
 
 

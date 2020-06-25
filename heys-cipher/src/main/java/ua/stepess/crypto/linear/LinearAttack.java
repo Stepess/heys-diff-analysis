@@ -1,6 +1,7 @@
 package ua.stepess.crypto.linear;
 
 import ua.stepess.crypto.cipher.HeysCipher;
+import ua.stepess.crypto.diff.DifferentialAttack;
 import ua.stepess.util.CryptoUtils;
 import ua.stepess.util.HeysCipherFactory;
 import ua.stepess.util.IOUtils;
@@ -8,6 +9,8 @@ import ua.stepess.util.IOUtils;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+
+import static java.lang.Math.abs;
 
 public class LinearAttack {
 
@@ -19,6 +22,7 @@ public class LinearAttack {
 
     private static final HeysCipher CIPHER = (HeysCipher) HeysCipherFactory.getDefaultHeysCipher();
 
+    // Approximation: Approximation{a=768, b=8736, probability=1.6884214710444212E-4}
     public static void main(String[] args) {
         generateApproximations();
 
@@ -29,9 +33,8 @@ public class LinearAttack {
 
         System.out.println("Size = " + data.size());
 
-        var approximations = IOUtils.readApproximations("out/approximation.json")
+        var approximations = IOUtils.readApproximations("tmp/linear/approximation.json")
                 .stream()
-                .filter(approximation -> approximation.level() > 5)
                 .peek(System.out::println)
                 .collect(Collectors.toList());
 
@@ -42,8 +45,7 @@ public class LinearAttack {
         firstKeys.forEach((k, c) -> System.out.println("Key = " + Integer.toHexString(k) + " count = " + c));
     }
 
-    public static Map<Integer, Integer> generatePlaintextCiphertextPairs(int[] key, double probability) {
-        int size = (int) (12 / probability);
+    public static Map<Integer, Integer> generatePlaintextCiphertextPairs(int[] key, int size) {
         Map<Integer, Integer> pairs = new HashMap<>();
         for (int i = 0; i < size; i++) {
             int x = ThreadLocalRandom.current().nextInt(VECTORS_NUM);
@@ -54,18 +56,17 @@ public class LinearAttack {
 
     private static void generateApproximations() {
         Collection<Approximation> pairs = new ArrayList<>();
-        for (int i = 0; i < HeysCipherFactory.N; i++) {
-            for (int j = 1; j < (1 << HeysCipherFactory.N); j++) {
-                int a = j << (4 * i);
-                System.out.println("a = " + Integer.toHexString(a));
-                pairs.addAll(search(a,5));
-            }
+
+        for (int alpha : DifferentialAttack.alphas) {
+            var approximations = search(alpha, 5);
+            pairs.addAll(approximations);
         }
+
         System.out.println("Approximations:");
         pairs.forEach(System.out::println);
         System.out.println("Total size = " + pairs.size());
 
-        IOUtils.writeToDisk("out/approximation.json", pairs);
+        IOUtils.writeToDiskAsJson("tmp/linear/approximation.json", pairs);
     }
 
     public static List<Approximation> search(int alpha, int r) {
@@ -74,8 +75,7 @@ public class LinearAttack {
         Map<Integer, Double> previous = new HashMap<>();
         previous.put(alpha, 1.0);
 
-        // the last one should be >> 0.00003051757
-        double[] bounds = {0.001, 0.0008, 0.0005, 0.00001, 0.00005};
+        double[] bounds = {0.00015, 0.00015, 0.00015, 0.00015, 0.00015};
 
         Map<Integer, Double> current = new HashMap<>();
 
@@ -122,7 +122,7 @@ public class LinearAttack {
         return findFirst(keyScore, KEY_LIMIT);
     }
 
-    
+
     public static Map<Integer, Integer> findMostProbableKeysForApproximations(Map<Integer, Integer> plaintextCiphertextMap, List<Approximation> approximations, int rightKey) {
         Map<Integer, Integer> keyScore = new HashMap<>();
         for (Approximation approximation : approximations) {
@@ -151,17 +151,17 @@ public class LinearAttack {
     }
 
     public static Set<Integer> findMostProbableKeysForApproximation(Map<Integer, Integer> plaintextCiphertext, int a, int b) {
-        Map<Integer, Integer> counts = new HashMap<>(VECTORS_NUM);
+        Map<Integer, Integer> keyScores = new HashMap<>(VECTORS_NUM);
         for (int k = 0; k < VECTORS_NUM; k++) {
-            int count = 0;
+            int numberOfOnes = 0;
             for (Map.Entry<Integer, Integer> p : plaintextCiphertext.entrySet()) {
                 int x = CIPHER.doEncryptionRound(p.getKey(), k);
-                count += scalarProduct(a, x) ^ scalarProduct(b, p.getValue());
+                numberOfOnes += scalarProduct(a, x) ^ scalarProduct(b, p.getValue());
             }
-            count = Math.max(count, VECTORS_NUM - count);
-            counts.put(k, Math.abs(count));
+            int u = ((VECTORS_NUM) - numberOfOnes) - numberOfOnes;
+            keyScores.put(k, abs(u));
         }
-        return findFirst(counts, PER_APPROXIMATION_KEY_LIMIT).keySet();
+        return findFirst(keyScores, PER_APPROXIMATION_KEY_LIMIT).keySet();
     }
 
     public static double[] calculateProbabilities(int a) {
@@ -169,11 +169,9 @@ public class LinearAttack {
         var distribution = new double[VECTORS_NUM];
         for (int b = 0; b < distribution.length; b++) {
             distribution[b] = 1.0;
-            b = CIPHER.shuffle(b);
+            var shuffled = CIPHER.shuffle(b);
             for (int i = 0; i < HeysCipherFactory.N; i++) {
-                int aPrime = (a >>> (4 * i)) & 0xF;
-                int bPrime = (b >>> (4 * i)) & 0xF;
-                distribution[b] *= linearPotentials[aPrime][bPrime];
+                distribution[b] *= linearPotentials[(a >>> (4 * i)) & 0xF][(shuffled >>> (4 * i)) & 0xF];
             }
         }
         return distribution;
@@ -184,19 +182,20 @@ public class LinearAttack {
         for (int i = 0; i < HeysCipherFactory.BLOCK_SIZE; i++) {
             res ^= ((x >>> i) & (y >>> i));
         }
-        return res & 0x1;
+        return res & 1;
     }
 
     private static double[][] computeLinearPotentials() {
-        double[][] lp = new double[1 << HeysCipherFactory.N][1 << HeysCipherFactory.N];
-        for (int a = 0; a < (1 << HeysCipherFactory.N); a++) {
-            for (int b = 0; b < (1 << HeysCipherFactory.N); b++) {
+        double[][] lp = new double[16][16];
+        for (int a = 0; a < 16; a++) {
+            for (int b = 0; b < 16; b++) {
                 double value = 0;
-                for (int x = 0; x < (1 << HeysCipherFactory.N); x++) {
+                for (int x = 0; x < 16; x++) {
                     int degree = scalarProduct(a, x) ^ scalarProduct(b, CIPHER.substitute(x));
                     value += degree == 1 ? -1 : 1;
                 }
-                lp[a][b] = Math.pow(value / (1 << HeysCipherFactory.N), 2);
+                value = value / 16;
+                lp[a][b] = value * value;
             }
         }
         return lp;
@@ -209,5 +208,5 @@ public class LinearAttack {
                 .limit(size)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
-    
+
 }

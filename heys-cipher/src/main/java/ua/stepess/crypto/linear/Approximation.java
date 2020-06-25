@@ -1,7 +1,5 @@
 package ua.stepess.crypto.linear;
 
-import static ua.stepess.crypto.diff.DifferentialAttack.VECTORS_NUM;
-
 public class Approximation {
     int a;
     int b;
@@ -20,13 +18,9 @@ public class Approximation {
         return new Approximation(a, b, probability);
     }
 
-    public int level() {
-        return (int) probability * VECTORS_NUM;
-    }
-
     @Override
     public String toString() {
-        return "Differential{" +
+        return "Approximation{" +
                 "a=" + a +
                 ", b=" + b +
                 ", probability=" + probability +

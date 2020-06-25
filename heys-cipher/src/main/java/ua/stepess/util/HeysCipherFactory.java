@@ -12,5 +12,4 @@ public class HeysCipherFactory {
     public static BlockCipher getDefaultHeysCipher() {
         return new HeysCipher(N, NUM_OF_ROUNDS, SBoxFactory.getDefaultSBox());
     }
-
 }
