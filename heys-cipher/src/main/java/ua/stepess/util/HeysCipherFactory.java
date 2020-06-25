@@ -2,7 +2,6 @@ package ua.stepess.util;
 
 import ua.stepess.crypto.cipher.BlockCipher;
 import ua.stepess.crypto.cipher.HeysCipher;
-import ua.stepess.crypto.cipher.HeysCipherFast;
 
 public class HeysCipherFactory {
 
@@ -13,9 +12,4 @@ public class HeysCipherFactory {
     public static BlockCipher getDefaultHeysCipher() {
         return new HeysCipher(N, NUM_OF_ROUNDS, SBoxFactory.getDefaultSBox());
     }
-
-    public static BlockCipher getFastHeysCipher() {
-        return new HeysCipherFast();
-    }
-
 }

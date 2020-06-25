@@ -1,6 +1,6 @@
 package ua.stepess.crypto.linear;
 
-import ua.stepess.crypto.cipher.HeysCipherFast;
+import ua.stepess.crypto.cipher.HeysCipher;
 import ua.stepess.crypto.diff.DifferentialAttack;
 import ua.stepess.util.CryptoUtils;
 import ua.stepess.util.HeysCipherFactory;
@@ -11,7 +11,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.abs;
-import static java.lang.Math.max;
 
 public class LinearAttack {
 
@@ -21,13 +20,13 @@ public class LinearAttack {
 
     private static final int PER_APPROXIMATION_KEY_LIMIT = 100;
 
-    private static final HeysCipherFast CIPHER = (HeysCipherFast) HeysCipherFactory.getFastHeysCipher();
+    private static final HeysCipher CIPHER = (HeysCipher) HeysCipherFactory.getDefaultHeysCipher();
 
     // Approximation: Approximation{a=768, b=8736, probability=1.6884214710444212E-4}
     public static void main(String[] args) {
         generateApproximations();
 
-        /*int[] keys = CryptoUtils.generateKey();
+        int[] keys = CryptoUtils.generateKey();
 
         System.out.println("Should be: " + Integer.toHexString(keys[0]));
         Map<Integer, Integer> data = generatePlaintextCiphertextPairs(keys, 25000);
@@ -36,7 +35,6 @@ public class LinearAttack {
 
         var approximations = IOUtils.readApproximations("tmp/linear/approximation.json")
                 .stream()
-                .filter(approximation -> approximation.level() > 5)
                 .peek(System.out::println)
                 .collect(Collectors.toList());
 
@@ -44,7 +42,7 @@ public class LinearAttack {
 
         var firstKeys = findMostProbableKeysForApproximations(data, approximations, keys[0]);
 
-        firstKeys.forEach((k, c) -> System.out.println("Key = " + Integer.toHexString(k) + " count = " + c));*/
+        firstKeys.forEach((k, c) -> System.out.println("Key = " + Integer.toHexString(k) + " count = " + c));
     }
 
     public static Map<Integer, Integer> generatePlaintextCiphertextPairs(int[] key, int size) {
@@ -121,7 +119,6 @@ public class LinearAttack {
             findFirst(keyScore, KEY_LIMIT).forEach((k, v) ->
                     System.out.println("Key: " + Integer.toHexString(k) + " count: " + v));
         }
-        IOUtils.writeToDiskAsJson("result.json", keyScore);
         return findFirst(keyScore, KEY_LIMIT);
     }
 
@@ -172,27 +169,20 @@ public class LinearAttack {
         var distribution = new double[VECTORS_NUM];
         for (int b = 0; b < distribution.length; b++) {
             distribution[b] = 1.0;
-            //b = CIPHER.shuffle(b);
-            var permutation = CIPHER.permutation(b);
+            var shuffled = CIPHER.shuffle(b);
             for (int i = 0; i < HeysCipherFactory.N; i++) {
-                distribution[b] *= linearPotentials[(a >>> (4 * i)) & 0xF][(permutation >>> (4 * i)) & 0xF];
+                distribution[b] *= linearPotentials[(a >>> (4 * i)) & 0xF][(shuffled >>> (4 * i)) & 0xF];
             }
         }
         return distribution;
     }
 
     public static int scalarProduct(int x, int y) {
-        /*int res = 0;
+        int res = 0;
         for (int i = 0; i < HeysCipherFactory.BLOCK_SIZE; i++) {
             res ^= ((x >>> i) & (y >>> i));
         }
-        return res & 1;*/
-
-        int z = x & y;
-        z = z ^ (z >>> 8);
-        z = z ^ (z >>> 4);
-        z = z ^ (z >>> 2);
-        return (z ^ (z >>> 1)) & 0x1;
+        return res & 1;
     }
 
     private static double[][] computeLinearPotentials() {
@@ -201,7 +191,7 @@ public class LinearAttack {
             for (int b = 0; b < 16; b++) {
                 double value = 0;
                 for (int x = 0; x < 16; x++) {
-                    int degree = scalarProduct(a, x) ^ scalarProduct(b, CIPHER.substitution(x));
+                    int degree = scalarProduct(a, x) ^ scalarProduct(b, CIPHER.substitute(x));
                     value += degree == 1 ? -1 : 1;
                 }
                 value = value / 16;
