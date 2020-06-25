@@ -21,12 +21,12 @@ public class Approximation {
     }
 
     public int level() {
-        return (int) probability * VECTORS_NUM;
+        return (int) (probability * VECTORS_NUM);
     }
 
     @Override
     public String toString() {
-        return "Differential{" +
+        return "Approximation{" +
                 "a=" + a +
                 ", b=" + b +
                 ", probability=" + probability +
